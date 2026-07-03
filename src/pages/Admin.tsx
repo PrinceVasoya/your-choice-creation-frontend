@@ -12,6 +12,7 @@ import { mapApiProductToFrontend } from '../utils/api';
 import Modal from '../components/Modal';
 import BackButton from '../components/BackButton';
 import usePageTitle from '../hooks/usePageTitle';
+import { AppConfig } from '../config/appConfig';
 
 // Helper to parse description
 export const parseProductDescription = (desc: string) => {
@@ -116,20 +117,29 @@ const formatDate = (dateString: string) => {
 
 // --- Customization Note Helper Parser ---
 const getCustomizationDetails = (item: any) => {
+  const baseUrl = AppConfig.API_BASE_URL;
   if (!item) return null;
   if (item.customization) {
+    let img = item.customization.imageUrl || item.customization.image || null;
+    if (img && img.startsWith('/uploads')) {
+      img = `${baseUrl}${img}`;
+    }
     return {
       text: item.customization.text || item.customization.note || null,
-      imageUrl: item.customization.imageUrl || item.customization.image || null
+      imageUrl: img
     };
   }
   
   const note = item.customizationNote || item.customizationText || item.customizationImage || item.note;
   if (!note) return null;
   if (typeof note === 'object') {
+    let img = note.imageUrl || note.image || null;
+    if (img && img.startsWith('/uploads')) {
+      img = `${baseUrl}${img}`;
+    }
     return {
       text: note.text || note.note || null,
-      imageUrl: note.imageUrl || note.image || null
+      imageUrl: img
     };
   }
 
@@ -141,9 +151,13 @@ const getCustomizationDetails = (item: any) => {
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       try {
         const parsed = JSON.parse(trimmed);
+        let img = parsed.imageUrl || parsed.image || parsed.customImage || null;
+        if (img && img.startsWith('/uploads')) {
+          img = `${baseUrl}${img}`;
+        }
         return {
           text: parsed.text || parsed.note || parsed.customText || null,
-          imageUrl: parsed.imageUrl || parsed.image || parsed.customImage || null
+          imageUrl: img
         };
       } catch (e) {
         // Fall through
@@ -155,6 +169,13 @@ const getCustomizationDetails = (item: any) => {
       return {
         text: null,
         imageUrl: trimmed
+      };
+    }
+
+    if (trimmed.startsWith('/uploads')) {
+      return {
+        text: null,
+        imageUrl: `${baseUrl}${trimmed}`
       };
     }
 

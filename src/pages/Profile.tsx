@@ -10,14 +10,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
 import usePageTitle from '../hooks/usePageTitle';
+import { AppConfig } from '../config/appConfig';
 
 const getCustomizationDetails = (item: any) => {
+  const baseUrl = AppConfig.API_BASE_URL;
   if (item.customization) {
     try {
       const data = typeof item.customization === 'string' ? JSON.parse(item.customization) : item.customization;
+      let img = data.imageUrl || data.image || null;
+      if (img && img.startsWith('/uploads')) {
+        img = `${baseUrl}${img}`;
+      }
       return {
         text: data.text || data.note || null,
-        imageUrl: data.imageUrl || data.image || null
+        imageUrl: img
       };
     } catch (e) {}
   }
@@ -25,13 +31,20 @@ const getCustomizationDetails = (item: any) => {
   if (note) {
     try {
       const data = JSON.parse(note);
+      let img = data.imageUrl || data.image || null;
+      if (img && img.startsWith('/uploads')) {
+        img = `${baseUrl}${img}`;
+      }
       return {
         text: data.text || data.note || null,
-        imageUrl: data.imageUrl || data.image || null
+        imageUrl: img
       };
     } catch (e) {
-      if (note.startsWith('http') || note.startsWith('/uploads')) {
+      if (note.startsWith('http')) {
         return { text: null, imageUrl: note };
+      }
+      if (note.startsWith('/uploads')) {
+        return { text: null, imageUrl: `${baseUrl}${note}` };
       }
       return { text: note, imageUrl: null };
     }

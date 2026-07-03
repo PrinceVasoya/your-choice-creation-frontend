@@ -1,4 +1,5 @@
 import { Product } from '../data/mockData';
+import { AppConfig } from '../config/appConfig';
 
 /**
  * Maps the .NET ProductResponseDto to the frontend's expected Product schema.
@@ -9,7 +10,9 @@ export function mapApiProductToFrontend(p: any): Product {
     name: p.name,
     price: Number(p.price),
     originalPrice: p.discountPrice ? Number(p.discountPrice) : undefined,
-    image: p.imageUrl || 'https://picsum.photos/seed/gift/400/400',
+    image: p.imageUrl 
+      ? (p.imageUrl.startsWith('/') ? `${AppConfig.API_BASE_URL}${p.imageUrl}` : p.imageUrl)
+      : 'https://picsum.photos/seed/gift/400/400',
     category: p.categoryName || 'Personalized Mugs',
     description: p.description || '',
     rating: Number((4.4 + (p.id % 7) * 0.1).toFixed(1)), // mock realistic ratings: 4.4 - 5.0

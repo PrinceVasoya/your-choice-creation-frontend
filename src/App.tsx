@@ -18,7 +18,6 @@ import AdminPanel from './pages/Admin';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Wishlist from './pages/Wishlist';
-import AdminLogin from './pages/AdminLogin';
 import FAQ from './pages/FAQ';
 import Shipping from './pages/Shipping';
 import OrderSuccess from './pages/OrderSuccess';
