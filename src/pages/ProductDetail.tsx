@@ -50,11 +50,13 @@ export default function ProductDetail() {
 
   const [product, setProduct] = useState<any>(null);
   usePageTitle(product?.name);
-  const [products, setProducts] = useState<any[]>(PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     setProduct(null); // Clear previous product state to prevent cache leakage (Fix 3)
+    setIsError(false);
     const fetchProductData = async () => {
       setIsLoading(true);
       try {
@@ -64,11 +66,11 @@ export default function ProductDetail() {
           const json = await res.json();
           if ((json.success || json.succeeded) && json.data) {
             setProduct(mapApiProductToFrontend(json.data));
+          } else {
+            setIsError(true);
           }
         } else {
-          // Check local mock as fallback
-          const localProd = PRODUCTS.find(p => p.id === id);
-          if (localProd) setProduct(localProd);
+          setIsError(true);
         }
 
         const allRes = await fetch('/api/products?pageSize=100');
@@ -79,9 +81,7 @@ export default function ProductDetail() {
           }
         }
       } catch (err) {
-                                                                              
-        const localProd = PRODUCTS.find(p => p.id === id);
-        if (localProd) setProduct(localProd);
+        setIsError(true);
       } finally {
         setIsLoading(false);
       }
@@ -259,6 +259,35 @@ export default function ProductDetail() {
     navigator.clipboard.writeText(window.location.href);
     triggerToast('Product link copied to clipboard!', false);
   };
+
+  // Error state
+  if (!isLoading && isError) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-32 text-center space-y-6 select-none animate-fade-in">
+        <div className="w-20 h-20 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto text-red-600">
+          <AlertCircle size={36} />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-serif font-bold text-gray-900">Failed to load product details</h1>
+          <p className="text-gray-500 text-sm">We encountered a connection issue while fetching this item's info. Please check your network and try again.</p>
+        </div>
+        <div className="flex gap-4 justify-center">
+          <button 
+            onClick={() => window.location.reload()}
+            className="inline-block bg-primary text-white px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-opacity-95 shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            Retry Loading Product
+          </button>
+          <Link 
+            to="/products"
+            className="inline-block bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95 transition-all"
+          >
+            Back to Shopping
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // 404 product not found state [V2]
   if (!isLoading && !product) {

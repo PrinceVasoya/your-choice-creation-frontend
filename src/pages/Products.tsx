@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Filter, ChevronDown, SlidersHorizontal, Grid, Star, X } from 'lucide-react';
+import { Filter, ChevronDown, SlidersHorizontal, Grid, Star, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PRODUCTS, CATEGORIES } from '../data/mockData';
 import ProductCard from '../components/ProductCard';
+import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import { mapApiProductToFrontend } from '../utils/api';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -16,14 +16,16 @@ export default function Products() {
   const categoryParam = searchParams.get('category');
   const searchParam = searchParams.get('search');
   
-  const [categories, setCategories] = useState<any[]>(CATEGORIES);
-  const [products, setProducts] = useState<any[]>(PRODUCTS);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
   const [sortBy, setSortBy] = useState('Featured');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [ratingFilter, setRatingFilter] = useState<number>(0);
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   // Sync category state when URL query updates
   useEffect(() => {
@@ -39,36 +41,49 @@ export default function Products() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [selectedCategory, priceRange, ratingFilter, inStockOnly]);
 
-  useEffect(() => {
-    const fetchProductsData = async () => {
-      try {
-        const catRes = await fetch('/api/categories');
-        if (catRes.ok) {
-          const catJson = await catRes.json();
-          if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
-            const mappedCats = catJson.data.map((c: any) => ({
-              id: String(c.id),
-              name: c.name,
-              image: c.imageUrl || 'https://images.unsplash.com/photo-1517254456776-9bb245d2b843?auto=format&fit=crop&w=400&h=400&q=80',
-              count: 30 + (c.id * 15)
-            }));
-            setCategories(mappedCats);
-          }
-        }
+  const fetchProductsData = async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      let isCatLoaded = false;
+      let isProdLoaded = false;
 
-        const prodRes = await fetch('/api/products?pageSize=100');
-        if (prodRes.ok) {
-          const prodJson = await prodRes.json();
-          if (prodJson.data && prodJson.data.length > 0) {
-            const mappedProds = prodJson.data.map(mapApiProductToFrontend);
-            setProducts(mappedProds);
-          }
+      const catRes = await fetch('/api/categories');
+      if (catRes.ok) {
+        const catJson = await catRes.json();
+        if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
+          const mappedCats = catJson.data.map((c: any) => ({
+            id: String(c.id),
+            name: c.name,
+            image: c.imageUrl || 'https://images.unsplash.com/photo-1517254456776-9bb245d2b843?auto=format&fit=crop&w=400&h=400&q=80',
+            count: 30 + (c.id * 15)
+          }));
+          setCategories(mappedCats);
+          isCatLoaded = true;
         }
-      } catch (err) {
-                                                                                             
       }
-    };
 
+      const prodRes = await fetch('/api/products?pageSize=100');
+      if (prodRes.ok) {
+        const prodJson = await prodRes.json();
+        if (prodJson.data && prodJson.data.length > 0) {
+          const mappedProds = prodJson.data.map(mapApiProductToFrontend);
+          setProducts(mappedProds);
+          isProdLoaded = true;
+        }
+      }
+
+      if (!isCatLoaded && !isProdLoaded) {
+        setIsError(true);
+      }
+    } catch (err) {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProductsData();
   }, []);
 
@@ -119,17 +134,26 @@ export default function Products() {
             />
             <span className={selectedCategory === 'All' ? 'text-primary font-bold' : ''}>All Categories</span>
           </label>
-          {categories.map(cat => (
-            <label key={cat.id} className="flex items-center space-x-3 text-sm text-gray-600 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={selectedCategory === cat.name} 
-                onChange={() => setSelectedCategory(cat.name)}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
-              />
-              <span className={selectedCategory === cat.name ? 'text-primary font-bold' : ''}>{cat.name}</span>
-            </label>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="flex items-center space-x-3 animate-pulse select-none">
+                <div className="w-4 h-4 bg-gray-200/60 rounded border-gray-300" />
+                <div className="w-24 h-3.5 bg-gray-200/60 rounded-md" />
+              </div>
+            ))
+          ) : (
+            categories.map(cat => (
+              <label key={cat.id} className="flex items-center space-x-3 text-sm text-gray-600 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={selectedCategory === cat.name} 
+                  onChange={() => setSelectedCategory(cat.name)}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
+                />
+                <span className={selectedCategory === cat.name ? 'text-primary font-bold' : ''}>{cat.name}</span>
+              </label>
+            ))
+          )}
         </div>
       </div>
 
@@ -235,19 +259,25 @@ export default function Products() {
             >
               All
             </button>
-            {categories.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.name)}
-                className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  selectedCategory === cat.name 
-                    ? 'bg-primary text-white shadow-sm' 
-                    : 'bg-gray-100 text-gray-500'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="w-20 h-8 bg-gray-100 animate-pulse rounded-full" />
+              ))
+            ) : (
+              categories.map(cat => (
+                <button 
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                    selectedCategory === cat.name 
+                      ? 'bg-primary text-white shadow-sm' 
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))
+            )}
           </div>
           {/* Subtle fade overlay to signal scrollable categories */}
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
@@ -324,92 +354,123 @@ export default function Products() {
 
           {/* Catalog layout */}
           <div className="flex-grow space-y-6">
-            
-            {/* Control Toolbar */}
-            <div className="flex items-center justify-between gap-4 bg-white p-3.5 rounded-xl border border-gray-100 shadow-2xs select-none">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Showing <span className="font-bold text-gray-900">{filteredProducts.length}</span> of <span className="font-bold text-gray-900">{products.length}</span> items
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Responsive Sort dropdown */}
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest hidden sm:inline">Sort:</span>
-                  <div className="relative group">
-                    <button className="flex items-center space-x-1 text-xs font-bold text-gray-900 hover:text-primary transition-colors focus:outline-none">
-                      <span>{sortBy}</span>
-                      <ChevronDown size={14} />
-                    </button>
-                    <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-2.5 z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                      {['Featured', 'Price: Low to High', 'Price: High to Low', 'Rating', 'Newest'].map(option => (
-                        <button
-                          key={option}
-                          onClick={() => setSortBy(option)}
-                          className={`w-full text-left px-4 py-2 text-xs hover:bg-secondary transition-colors ${sortBy === option ? 'text-primary font-bold' : 'text-gray-600'}`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Mobile Filter Toggle Drawer button */}
-                <button 
-                  onClick={() => setIsFilterOpen(true)}
-                  className="lg:hidden p-2 text-primary bg-primary/5 rounded-lg flex items-center space-x-1.5 px-3 border border-primary/10 active:scale-95 shadow-sm"
-                >
-                  <SlidersHorizontal size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Product Grid: 2 columns mobile, 3 tablet, 5 desktop [M2, Step 5] */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5 px-0.5 sm:px-0">
-              <AnimatePresence mode="popLayout">
-                {filteredProducts.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-            
-            {/* Empty grid results handler [V1] */}
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20 px-4 bg-white border border-gray-100 rounded-2xl shadow-2xs space-y-5">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-400">
-                  <Filter size={28} />
+            {isError ? (
+              <div className="text-center py-20 px-4 bg-white border border-gray-100 rounded-2xl shadow-2xs space-y-5 select-none">
+                <div className="w-16 h-16 bg-red-50 text-red-655 rounded-full flex items-center justify-center mx-auto text-red-600">
+                  <AlertCircle size={28} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-serif font-bold text-gray-900">No products matched</h3>
-                  {searchParam ? (
-                    <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                      We couldn't find any listings matching your search for "{searchParam}".
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                      Try resetting your rating, stock filters, or categories selections.
-                    </p>
-                  )}
+                  <h3 className="text-lg font-serif font-bold text-gray-900">Unable to load products</h3>
+                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                    We encountered a connection issue while fetching our latest catalog. Please try again.
+                  </p>
                 </div>
                 <button 
-                  onClick={() => { setSelectedCategory('All'); setPriceRange([0, 5000]); setRatingFilter(0); setInStockOnly(false); navigate('/products'); }}
-                  className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest hover:bg-opacity-95 active:scale-95 transition-all shadow-sm"
+                  onClick={fetchProductsData}
+                  className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest hover:bg-opacity-95 active:scale-95 transition-all shadow-sm cursor-pointer"
                 >
-                  Clear All Filters
+                  Retry Loading Catalog
                 </button>
               </div>
+            ) : (
+              <>
+                {/* Control Toolbar */}
+                <div className="flex items-center justify-between gap-4 bg-white p-3.5 rounded-xl border border-gray-100 shadow-2xs select-none">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {isLoading ? (
+                      <span className="animate-pulse">Loading catalog items...</span>
+                    ) : (
+                      <>Showing <span className="font-bold text-gray-900">{filteredProducts.length}</span> of <span className="font-bold text-gray-900">{products.length}</span> items</>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    {/* Responsive Sort dropdown */}
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest hidden sm:inline">Sort:</span>
+                      <div className="relative group">
+                        <button className="flex items-center space-x-1 text-xs font-bold text-gray-900 hover:text-primary transition-colors focus:outline-none">
+                          <span>{sortBy}</span>
+                          <ChevronDown size={14} />
+                        </button>
+                        <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-2.5 z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                          {['Featured', 'Price: Low to High', 'Price: High to Low', 'Rating', 'Newest'].map(option => (
+                            <button
+                              key={option}
+                              onClick={() => setSortBy(option)}
+                              className={`w-full text-left px-4 py-2 text-xs hover:bg-secondary transition-colors ${sortBy === option ? 'text-primary font-bold' : 'text-gray-600'}`}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Mobile Filter Toggle Drawer button */}
+                    <button 
+                      onClick={() => setIsFilterOpen(true)}
+                      className="lg:hidden p-2 text-primary bg-primary/5 rounded-lg flex items-center space-x-1.5 px-3 border border-primary/10 active:scale-95 shadow-sm"
+                    >
+                      <SlidersHorizontal size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                        Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Product Grid: 2 columns mobile, 3 tablet, 5 desktop [M2, Step 5] */}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5 px-0.5 sm:px-0">
+                  {isLoading ? (
+                    Array.from({ length: 10 }).map((_, idx) => (
+                      <ProductCardSkeleton key={idx} />
+                    ))
+                  ) : (
+                    <AnimatePresence mode="popLayout">
+                      {filteredProducts.map((product) => (
+                        <motion.div
+                          key={product.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ProductCard product={product} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </div>
+                
+                {/* Empty grid results handler [V1] */}
+                {!isLoading && filteredProducts.length === 0 && (
+                  <div className="text-center py-20 px-4 bg-white border border-gray-100 rounded-2xl shadow-2xs space-y-5">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                      <Filter size={28} />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-serif font-bold text-gray-900">No products matched</h3>
+                      {searchParam ? (
+                        <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                          We couldn't find any listings matching your search for "{searchParam}".
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                          Try resetting your rating, stock filters, or categories selections.
+                        </p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => { setSelectedCategory('All'); setPriceRange([0, 5000]); setRatingFilter(0); setInStockOnly(false); navigate('/products'); }}
+                      className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest hover:bg-opacity-95 active:scale-95 transition-all shadow-sm"
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

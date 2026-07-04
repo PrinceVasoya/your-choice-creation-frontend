@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
-import { ArrowRight, Gift, Truck, ShieldCheck, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Gift, Truck, ShieldCheck, Heart, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { CATEGORIES, PRODUCTS } from '../data/mockData';
 import ProductCard from '../components/ProductCard';
+import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import Newsletter from '../components/Newsletter';
 import { mapApiProductToFrontend } from '../utils/api';
 import usePageTitle from '../hooks/usePageTitle';
@@ -12,8 +12,10 @@ const colorList = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fecaca', '#e9d5ff', '#fed7
 
 export default function Home() {
   usePageTitle('Shop Now');
-  const [categories, setCategories] = useState<any[]>(CATEGORIES);
-  const [trendingProducts, setTrendingProducts] = useState<any[]>(PRODUCTS.filter(p => p.isTrending));
+  const [categories, setCategories] = useState<any[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollCategories = (direction: 'left' | 'right') => {
@@ -36,38 +38,51 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    const fetchHomeData = async () => {
-      try {
-        // Fetch categories from live API
-        const catRes = await fetch('/api/categories');
-        if (catRes.ok) {
-          const catJson = await catRes.json();
-          if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
-            const mappedCats = catJson.data.map((c: any) => ({
-              id: String(c.id),
-              name: c.name,
-              image: c.imageUrl || '',
-              count: 30 + (c.id * 15)
-            }));
-            setCategories(mappedCats);
-          }
-        }
+  const fetchHomeData = async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      let catLoaded = false;
+      let prodLoaded = false;
 
-        // Fetch products from live API
-        const prodRes = await fetch('/api/products?pageSize=30');
-        if (prodRes.ok) {
-          const prodJson = await prodRes.json();
-          if (prodJson.data && prodJson.data.length > 0) {
-            const mappedProds = prodJson.data.map(mapApiProductToFrontend);
-            setTrendingProducts(mappedProds.filter((p: any) => p.isTrending).slice(0, 4));
-          }
+      // Fetch categories from live API
+      const catRes = await fetch('/api/categories');
+      if (catRes.ok) {
+        const catJson = await catRes.json();
+        if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
+          const mappedCats = catJson.data.map((c: any) => ({
+            id: String(c.id),
+            name: c.name,
+            image: c.imageUrl || '',
+            count: 30 + (c.id * 15)
+          }));
+          setCategories(mappedCats);
+          catLoaded = true;
         }
-      } catch (err) {
-
       }
-    };
 
+      // Fetch products from live API
+      const prodRes = await fetch('/api/products?pageSize=30');
+      if (prodRes.ok) {
+        const prodJson = await prodRes.json();
+        if (prodJson.data && prodJson.data.length > 0) {
+          const mappedProds = prodJson.data.map(mapApiProductToFrontend);
+          setTrendingProducts(mappedProds.filter((p: any) => p.isTrending).slice(0, 4));
+          prodLoaded = true;
+        }
+      }
+
+      if (!catLoaded && !prodLoaded) {
+        setIsError(true);
+      }
+    } catch (err) {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchHomeData();
   }, []);
 
@@ -127,87 +142,124 @@ export default function Home() {
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[100px] animate-pulse" />
       </section>
 
-      {/* Categories Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-8">
-          <div className="space-y-1 text-left">
-            <span className="text-primary font-bold uppercase tracking-widest text-xs">Curated Categories</span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 animate-fade-in">Shop by Category</h2>
+      {isError ? (
+        <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-6 select-none">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <AlertCircle size={28} />
           </div>
-          <Link to="/products" className="text-primary font-bold flex items-center space-x-1 hover:underline group">
-            <span>View All</span>
-            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="categories-wrapper">
-          <button
-            onClick={() => scrollCategories('left')}
-            className="category-arrow left"
-            aria-label="Scroll left"
+          <div className="space-y-2">
+            <h3 className="text-xl font-serif font-bold text-gray-900">Failed to load shop items</h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+              We encountered a connection issue while fetching our latest catalog. Please try again.
+            </p>
+          </div>
+          <button 
+            onClick={fetchHomeData}
+            className="inline-flex items-center justify-center bg-primary text-white px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-opacity-95 shadow-md active:scale-95 transition-all"
           >
-            <ChevronLeft size={20} />
+            Retry Loading
           </button>
+        </div>
+      ) : (
+        <>
+          {/* Categories Section */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-end mb-8">
+              <div className="space-y-1 text-left">
+                <span className="text-primary font-bold uppercase tracking-widest text-xs">Curated Categories</span>
+                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 animate-fade-in">Shop by Category</h2>
+              </div>
+              <Link to="/products" className="text-primary font-bold flex items-center space-x-1 hover:underline group">
+                <span>View All</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
 
-          <div
-            ref={categoryScrollRef}
-            className="categories-scroll-container scrollbar-hide"
-          >
-            {categories.map((category, index) => (
-              <div key={category.id} className="category-item">
-                <Link to={`/products?category=${category.name}`} className="group block text-center">
-                  <div className="circle">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => handleImageError(e, index, category.name)}
-                    />
-                  </div>
-                  <h3 className="font-serif font-bold text-gray-800 group-hover:text-primary transition-colors leading-tight text-sm sm:text-base mt-3">
-                    {category.name}
-                  </h3>
+            <div className="categories-wrapper">
+              <button
+                onClick={() => scrollCategories('left')}
+                className="category-arrow left"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
+              <div
+                ref={categoryScrollRef}
+                className="categories-scroll-container scrollbar-hide"
+              >
+                {isLoading ? (
+                  Array.from({ length: 7 }).map((_, idx) => (
+                    <div key={idx} className="category-item animate-pulse select-none">
+                      <div className="w-[88px] h-[88px] sm:w-[88px] sm:h-[88px] bg-gray-200/60 rounded-full border-4 border-white shadow-xs" />
+                      <div className="w-16 h-3 bg-gray-200/60 rounded-md mt-4 mx-auto" />
+                    </div>
+                  ))
+                ) : (
+                  categories.map((category, index) => (
+                    <div key={category.id} className="category-item">
+                      <Link to={`/products?category=${category.name}`} className="group block text-center">
+                        <div className="circle">
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(e) => handleImageError(e, index, category.name)}
+                          />
+                        </div>
+                        <h3 className="font-serif font-bold text-gray-800 group-hover:text-primary transition-colors leading-tight text-sm sm:text-base mt-3">
+                          {category.name}
+                        </h3>
+                      </Link>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <button
+                onClick={() => scrollCategories('right')}
+                className="category-arrow right"
+                aria-label="Scroll right"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </section>
+
+          {/* Trending Products */}
+          <section className="bg-secondary/50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-end items-start mb-16 gap-6">
+                <div className="space-y-4 text-left">
+                  <span className="text-primary font-bold uppercase tracking-widest text-xs">Curated for you</span>
+                  <h2 className="text-4xl sm:text-5xl font-serif font-bold text-gray-900">Trending Now</h2>
+                </div>
+                <Link to="/products" className="text-primary font-bold flex items-center space-x-2 hover:underline group">
+                  <span>View All Products</span>
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
-            ))}
-          </div>
 
-          <button
-            onClick={() => scrollCategories('right')}
-            className="category-arrow right"
-            aria-label="Scroll right"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      </section>
-
-
-
-      {/* Trending Products */}
-      <section className="bg-secondary/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-end items-start mb-16 gap-6">
-            <div className="space-y-4 text-left">
-              <span className="text-primary font-bold uppercase tracking-widest text-xs">Curated for you</span>
-              <h2 className="text-4xl sm:text-5xl font-serif font-bold text-gray-900">Trending Now</h2>
-            </div>
-            <Link to="/products" className="text-primary font-bold flex items-center space-x-2 hover:underline group">
-              <span>View All Products</span>
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8 px-0.5 sm:px-0">
-            {trendingProducts.slice(0, 4).map((product) => (
-              <div key={product.id}>
-                <ProductCard product={product} />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8 px-0.5 sm:px-0">
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, idx) => (
+                    <div key={idx}>
+                      <ProductCardSkeleton />
+                    </div>
+                  ))
+                ) : (
+                  trendingProducts.slice(0, 4).map((product) => (
+                    <div key={product.id}>
+                      <ProductCard product={product} />
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Features Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
