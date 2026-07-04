@@ -89,13 +89,11 @@ export default function Cart() {
   }, [cart]);
   const handleCheckoutClick = () => {
     console.log("Place Order clicked");
-    const token = localStorage.getItem("token");
-    console.log("User logged in:", !!token);
     if (hasOutOfStockOrDeleted) {
       triggerToast('Item is now out of stock. Please remove it to proceed.', true);
       return;
     }
-    if (!token) {
+    if (!isAuthenticated) {
       console.log("Saving redirect:", "/checkout");
       localStorage.setItem("redirectAfterLogin", "/checkout");
       navigate("/login?redirect=checkout");

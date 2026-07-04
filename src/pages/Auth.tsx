@@ -30,8 +30,9 @@ export default function Auth() {
   });
 
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated, user } = useAuth();
   const { restoreCart } = useCart();
+  const isAdmin = isAuthenticated && user?.roles?.some(r => r.toLowerCase() === 'admin');
 
   const triggerToast = (message: string, isError: boolean) => {
     setToast({ show: true, message, isError });
@@ -448,12 +449,14 @@ export default function Auth() {
            >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
            </button>
-           <Link 
-            to="/admin"
-            className="text-[9px] font-bold text-gray-400 hover:text-primary transition-colors uppercase tracking-[0.25em]"
-           >
-            Staff Login
-           </Link>
+           {isAdmin && (
+             <Link 
+              to="/admin"
+              className="text-[9px] font-bold text-gray-400 hover:text-primary transition-colors uppercase tracking-[0.25em]"
+             >
+              Staff Login
+             </Link>
+           )}
         </div>
       </motion.div>
     </div>

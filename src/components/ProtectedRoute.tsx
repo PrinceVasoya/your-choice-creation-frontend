@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!token) {
+  if (!token || !isAuthenticated) {
     localStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
     return <Navigate to="/login" replace />;
   }

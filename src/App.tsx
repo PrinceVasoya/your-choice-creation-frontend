@@ -36,7 +36,7 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => (
 const AppRoutes = () => {
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
-  const isAdmin = isAuthenticated && user?.roles?.includes('Admin');
+  const isAdmin = isAuthenticated && user?.roles?.some(r => r.toLowerCase() === 'admin');
 
   return (
     <AnimatePresence mode="wait">
@@ -46,8 +46,8 @@ const AppRoutes = () => {
         <Route 
           path="/admin/*" 
           element={
-            isAdmin 
-            ? <AdminPanel onLogout={logout} /> 
+            isAuthenticated 
+            ? (isAdmin ? <AdminPanel onLogout={logout} /> : <Navigate to="/profile?error=unauthorized" replace />)
             : <Navigate to="/login?redirect=admin" replace />
           } 
         />

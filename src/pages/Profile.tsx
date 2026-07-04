@@ -6,7 +6,7 @@ import {
   HelpCircle, Sparkles, MapPin, Truck
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
 import usePageTitle from '../hooks/usePageTitle';
@@ -57,6 +57,8 @@ export default function Profile() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(true);
   const { logout, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = isAuthenticated && user?.roles?.some(r => r.toLowerCase() === 'admin');
 
 
 
@@ -103,6 +105,14 @@ export default function Profile() {
       setToast((prev) => ({ ...prev, show: false }));
     }, 3500);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('error') === 'unauthorized') {
+      triggerToast('Access Denied: You do not have permissions to access the admin area.', true);
+      navigate('/profile', { replace: true });
+    }
+  }, [location, navigate]);
 
   // Helper formatting functions
   const formatDate = (dateString: string) => {
@@ -421,10 +431,12 @@ export default function Profile() {
                 </button>
               ))}
               <div className="mt-4 pt-4 border-t border-gray-50 px-8">
-                <Link to="/admin" className="w-full flex items-center space-x-4 py-5 text-[10px] font-bold text-gray-300 hover:text-primary transition-colors cursor-pointer uppercase tracking-widest">
-                  <ShieldCheck size={18} />
-                  <span>Staff Login</span>
-                </Link>
+                {isAdmin && (
+                  <Link to="/admin" className="w-full flex items-center space-x-4 py-5 text-[10px] font-bold text-gray-300 hover:text-primary transition-colors cursor-pointer uppercase tracking-widest">
+                    <ShieldCheck size={18} />
+                    <span>Staff Login</span>
+                  </Link>
+                )}
                 <button 
                   onClick={handleLogout}
                   className="w-full flex items-center space-x-4 py-5 text-sm font-bold text-red-500 hover:text-red-600 transition-colors"

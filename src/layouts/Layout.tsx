@@ -65,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen flex flex-col">
 
       {/* Header (exactly 56px / h-14 high on mobile) */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 w-full ${isScrolled ? 'glass shadow-sm' : 'bg-white border-b border-gray-50'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 w-full ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-gray-200/50' : 'bg-white border-b border-gray-100'}`}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 lg:h-20">
             {/* Logo on Left for Mobile */}
@@ -99,7 +99,7 @@ export default function Layout({ children }: LayoutProps) {
                   key={link.name}
                   to={link.path}
                   className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary pb-1 ${
-                    isLinkActive(link.path) ? 'text-primary border-b-2 border-primary font-bold' : 'text-gray-600 border-b-2 border-transparent'
+                    isLinkActive(link.path) ? 'text-primary border-b-2 border-primary font-bold' : 'text-gray-800 border-b-2 border-transparent'
                   }`}
                 >
                   {link.name}
@@ -126,10 +126,10 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Desktop: Icons */}
             <div className="hidden lg:flex items-center space-x-4">
-              <Link to={isAuthenticated ? "/profile" : "/auth"} className="p-2 text-gray-600 hover:text-primary transition-colors">
+              <Link to={isAuthenticated ? "/profile" : "/auth"} className="p-2 text-gray-800 hover:text-primary transition-colors">
                 <User size={20} />
               </Link>
-              <Link to="/wishlist" className="p-2 text-gray-600 hover:text-primary transition-colors relative">
+              <Link to="/wishlist" className="p-2 text-gray-800 hover:text-primary transition-colors relative">
                 <Heart size={20} />
                 {wishlistIds.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-xs">
@@ -137,7 +137,7 @@ export default function Layout({ children }: LayoutProps) {
                   </span>
                 )}
               </Link>
-              <Link to="/cart" className="p-2 text-gray-600 hover:text-primary transition-colors relative">
+              <Link to="/cart" className="p-2 text-gray-800 hover:text-primary transition-colors relative">
                 <ShoppingCart size={20} />
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
               </Link>
@@ -147,18 +147,18 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-1 lg:hidden">
               <button 
                 onClick={() => setIsMobileSearchExpanded(!isMobileSearchExpanded)}
-                className={`p-2 text-gray-600 hover:text-primary transition-colors ${isMobileSearchExpanded ? 'text-primary' : ''}`}
+                className={`p-2 text-gray-800 hover:text-primary transition-colors ${isMobileSearchExpanded ? 'text-primary' : ''}`}
                 aria-label="Search"
               >
                 <Search size={22} />
               </button>
-              <Link to="/cart" className="p-2 text-gray-600 hover:text-primary transition-colors relative" aria-label="Cart">
+              <Link to="/cart" className="p-2 text-gray-800 hover:text-primary transition-colors relative" aria-label="Cart">
                 <ShoppingCart size={22} />
                 <span className="absolute top-0.5 right-0.5 bg-primary text-white text-[9px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center shadow-sm">{cartCount}</span>
               </Link>
               <button 
                 onClick={() => setIsMenuOpen(true)}
-                className="p-2 text-gray-600 hover:text-primary transition-colors"
+                className="p-2 text-gray-800 hover:text-primary transition-colors"
                 aria-label="Menu"
               >
                 <Menu size={22} />
