@@ -25,12 +25,25 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_API_URL || 'https://localhost:53638',
           changeOrigin: true,
-          secure: false
+          secure: false,
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log(`[Vite Proxy] Forwarding ${req.method} ${req.url} -> ${options.target}`);
+            });
+            proxy.on('error', (err, req, res) => {
+              console.error(`[Vite Proxy Error] Failed to connect to ${options.target} for ${req.url}:`, err.message);
+            });
+          }
         },
         '/uploads': {
           target: env.VITE_API_URL || 'https://localhost:53638',
           changeOrigin: true,
-          secure: false
+          secure: false,
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log(`[Vite Proxy] Forwarding static file request ${req.url} -> ${options.target}`);
+            });
+          }
         }
       }
     },
