@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-choice-creation.runasp.net/api/:path*"
+      "destination": "http://your-choice-creation.runasp.net/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://your-choice-creation.runasp.net/uploads/:path*"
+      "destination": "http://your-choice-creation.runasp.net/uploads/:path*"
     },
     {
       "source": "/((?!api/|uploads/).*)",
