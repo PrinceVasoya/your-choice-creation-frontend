@@ -381,7 +381,13 @@ export default function Checkout() {
         return;
       }
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error('Failed to parse order response:', e);
+        throw new Error('Server returned an invalid response.');
+      }
 
       if (response.ok && (result.success || result.succeeded) && result.data) {
         const scriptLoaded = await loadRazorpayScript();
@@ -413,7 +419,7 @@ export default function Checkout() {
         }
 
         const options: any = {
-          key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+          key: (import.meta as any).env.VITE_RAZORPAY_KEY_ID || '',
           amount: rpOrderJson.amount,
           currency: "INR",
           name: "Your Choice Creation",
@@ -439,7 +445,6 @@ export default function Checkout() {
                 clearCart();
                 triggerToast('Payment & Order completed successfully!', false);
 
-                // Format estimated delivery date (5 to 7 days from now)
                 const deliveryDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
                   day: 'numeric',
                   month: 'short',
@@ -499,7 +504,8 @@ export default function Checkout() {
         triggerToast(errorMsg, true);
       }
     } catch (err) {
-      triggerToast('Connection error. Failed to place order.', true);
+      console.error('Order placement error:', err);
+      triggerToast('A network error occurred. Please check your connection and try again.', true);
     } finally {
       setIsSubmitting(false);
     }
