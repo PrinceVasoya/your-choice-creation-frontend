@@ -62,7 +62,7 @@ export default function Shipping() {
                       </div>
                       <div>
                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Standard Shipping</p>
-                         <p className="text-sm font-bold text-gray-900">Free shipping on all personalized orders above ₹999.</p>
+                         <p className="text-sm font-bold text-gray-900">Free shipping on all personalized orders.</p>
                       </div>
                    </div>
                 </div>

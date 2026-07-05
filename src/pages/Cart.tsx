@@ -14,9 +14,6 @@ export default function Cart() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const [promoInput, setPromoInput] = useState('');
-  const [promoError, setPromoError] = useState(false);
-  const [promoSuccess, setPromoSuccess] = useState(false);
   const [isMobileSummaryExpanded, setIsMobileSummaryExpanded] = useState(false);
 
   const [toast, setToast] = useState<{ show: boolean; message: string; isError: boolean }>({
@@ -102,21 +99,9 @@ export default function Cart() {
     navigate("/checkout");
   };
 
-  const handleApplyPromo = () => {
-    const success = applyPromoCode(promoInput);
-    if (success) {
-      setPromoSuccess(true);
-      setPromoError(false);
-      setTimeout(() => setPromoSuccess(false), 3000);
-    } else {
-      setPromoError(true);
-      setPromoSuccess(false);
-      setTimeout(() => setPromoError(false), 3000);
-    }
-  };
-
-  const shipping = cartTotal > 999 ? 0 : (cartTotal === 0 ? 0 : 99);
-  const total = cartTotal - discount + shipping;
+  const shipping = 0;
+  const handlingFee = 0;
+  const total = cartTotal - discount + shipping + handlingFee;
 
   // Empty Cart State validation [V3]
   if (cart.length === 0) {
@@ -328,13 +313,12 @@ export default function Cart() {
                 )}
                 <div className="flex justify-between text-gray-400 uppercase tracking-wider">
                   <span>Shipping</span>
-                  <span className={shipping === 0 ? "text-green-600 font-bold" : "text-gray-900"}>
-                    {shipping === 0 ? "FREE" : `₹${shipping}`}
-                  </span>
+                  <span className="text-green-600 font-bold">FREE</span>
                 </div>
-                {shipping > 0 && (
-                  <p className="text-[10px] text-accent italic">Add ₹{(999 - cartTotal).toLocaleString('en-IN')} more for FREE shipping!</p>
-                )}
+                <div className="flex justify-between text-gray-400 uppercase tracking-wider">
+                  <span>Handling Fees</span>
+                  <span className="text-green-600 font-bold">FREE</span>
+                </div>
                 <div className="border-t border-gray-100 pt-4 flex justify-between text-lg sm:text-xl font-bold text-gray-900">
                   <span>Total</span>
                   <span className="text-primary">₹{total.toLocaleString('en-IN')}</span>
@@ -357,50 +341,6 @@ export default function Cart() {
                   Remove out of stock items to continue
                 </p>
               )}
-            </div>
-
-            {/* Coupons Card (responsive flex for stacked inputs on mobile [M7]) */}
-            <div className="bg-white p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-2xs relative overflow-hidden">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Coupon Apply</p>
-                  {promoCode && <span className="text-[9px] bg-accent/15 text-accent px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Active: {promoCode}</span>}
-                </div>
-                <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-2">
-                  <input
-                    type="text"
-                    value={promoInput}
-                    onChange={(e) => setPromoInput(e.target.value)}
-                    placeholder="ENTER CODE"
-                    className={`w-full sm:flex-grow px-4 py-3 rounded-xl text-xs border focus:ring-2 transition-all uppercase font-bold tracking-widest focus:outline-none ${promoError ? 'border-red-200 bg-red-50 focus:ring-red-100' :
-                      promoSuccess ? 'border-green-200 bg-green-50 focus:ring-green-100' :
-                        'border-gray-50 bg-gray-50 focus:ring-primary/10'
-                      }`}
-                    style={{ minHeight: '44px' }}
-                  />
-                  <button
-                    onClick={handleApplyPromo}
-                    disabled={!promoInput}
-                    className="w-full sm:w-auto bg-gray-950 text-white px-5 py-3 rounded-xl text-xs font-bold shadow-md hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50"
-                    style={{ minHeight: '44px' }}
-                  >
-                    Apply
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {promoSuccess && (
-                    <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] text-green-600 font-bold flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Discount Code applied successfully!
-                    </motion.p>
-                  )}
-                  {promoError && (
-                    <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] text-red-500 font-bold flex items-center gap-1">
-                      <AlertCircle size={12} /> Invalid discount coupon code.
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-              </div>
             </div>
           </div>
         </div>
@@ -429,9 +369,11 @@ export default function Cart() {
               )}
               <div className="flex justify-between">
                 <span>Shipping Fee</span>
-                <span className={shipping === 0 ? "text-green-600 font-bold" : "text-gray-900 font-bold"}>
-                  {shipping === 0 ? "FREE" : `₹${shipping}`}
-                </span>
+                <span className="text-green-600 font-bold">FREE</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Handling Fees</span>
+                <span className="text-green-600 font-bold">FREE</span>
               </div>
             </motion.div>
           )}

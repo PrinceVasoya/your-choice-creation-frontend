@@ -86,8 +86,9 @@ export default function Checkout() {
   const [customizationErrors, setCustomizationErrors] = useState<Record<string, { text?: boolean; image?: boolean }>>({});
 
   // Cart Calculations
-  const shipping = cartTotal > 999 ? 0 : (cartTotal === 0 ? 0 : 99);
-  const total = cartTotal - discount + shipping;
+  const shipping = 0;
+  const handlingFee = 0;
+  const total = cartTotal - discount + shipping + handlingFee;
 
   const customizableItems = useMemo(() => {
     return cart.filter(item =>
@@ -1064,11 +1065,13 @@ export default function Checkout() {
                     <span>-₹{discount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                <div className="flex justify-between uppercase tracking-wider border-b border-dashed border-gray-100 pb-4">
+                <div className="flex justify-between uppercase tracking-wider">
                   <span>Delivery Charges</span>
-                  <span className={shipping === 0 ? "text-green-600 font-bold" : "text-gray-900 font-bold"}>
-                    {shipping === 0 ? "FREE" : `₹${shipping}`}
-                  </span>
+                  <span className="text-green-600 font-bold">FREE</span>
+                </div>
+                <div className="flex justify-between uppercase tracking-wider border-b border-dashed border-gray-100 pb-4">
+                  <span>Handling Fees</span>
+                  <span className="text-green-600 font-bold">FREE</span>
                 </div>
                 <div className="flex justify-between text-lg sm:text-xl font-serif font-bold text-gray-900 pt-2">
                   <span>Total Amount</span>

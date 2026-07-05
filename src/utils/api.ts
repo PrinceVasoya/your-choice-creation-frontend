@@ -5,11 +5,18 @@ import { AppConfig } from '../config/appConfig';
  * Maps the .NET ProductResponseDto to the frontend's expected Product schema.
  */
 export function mapApiProductToFrontend(p: any): Product {
+  const price = p.discountPrice 
+    ? Math.min(Number(p.price), Number(p.discountPrice)) 
+    : Number(p.price);
+  const originalPrice = p.discountPrice 
+    ? Math.max(Number(p.price), Number(p.discountPrice)) 
+    : undefined;
+
   return {
     id: String(p.id),
     name: p.name,
-    price: Number(p.price),
-    originalPrice: p.discountPrice ? Number(p.discountPrice) : undefined,
+    price: price,
+    originalPrice: originalPrice,
     image: p.imageUrl 
       ? (p.imageUrl.startsWith('/') ? `${AppConfig.API_BASE_URL}${p.imageUrl}` : p.imageUrl)
       : 'https://picsum.photos/seed/gift/400/400',
