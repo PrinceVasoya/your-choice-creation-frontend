@@ -35,9 +35,9 @@ export default function Contact() {
           {/* Info Cards */}
           <div className="space-y-4">
             {[
-              { icon: <Mail className="text-primary" />, title: 'Email Us', info: 'hello@yourchoice.com', sub: 'We respond within 24 hours' },
-              { icon: <Phone className="text-primary" />, title: 'Call Us', info: '+91 98765 43210', sub: 'Mon-Sat, 10am to 7pm' },
-              { icon: <MapPin className="text-primary" />, title: 'Visit Us', info: 'Studio 102, Design Park', sub: 'Andheri West, Mumbai, 400053' },
+              { icon: <Mail className="text-primary" />, title: 'Email Us', info: 'nakranipradip2770@gmail.com', sub: 'We respond within 24 hours' },
+              { icon: <Phone className="text-primary" />, title: 'Call Us', info: '+91 90810 03807', sub: 'Mon-Sat, 10am to 7pm' },
+              { icon: <MapPin className="text-primary" />, title: 'Visit Us', info: 'Nikol, Ahmedabad', sub: 'Gujarat, India' },
             ].map((card, i) => (
               <motion.div 
                 key={i}
@@ -142,16 +142,19 @@ export default function Contact() {
         </div>
       </div>
       
-      {/* Map Placeholder */}
+      {/* Map — Nikol, Ahmedabad */}
       <div className="max-w-7xl mx-auto px-4 mt-24">
-        <div className="h-[400px] bg-secondary rounded-[3rem] overflow-hidden relative group">
-          <img src="https://picsum.photos/seed/map/1500/800" alt="Map" className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="p-4 bg-white rounded-full shadow-2xl relative">
-              <div className="absolute inset-0 bg-primary animate-ping rounded-full" />
-              <MapPin className="text-primary relative z-10" size={32} fill="currentColor" fillOpacity={0.2} />
-            </div>
-          </div>
+        <div className="h-[400px] bg-secondary rounded-[3rem] overflow-hidden relative shadow-xl">
+          <iframe
+            title="Nikol Ahmedabad Location"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14682.23!2d72.6401!3d23.0530!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x395e87b1234abcdf%3A0x1234567890abcdef!2sNikol%2C%20Ahmedabad%2C%20Gujarat!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+            width="100%"
+            height="100%"
+            style={{ border: 0, filter: 'contrast(1.1) saturate(1.2)' }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         </div>
       </div>
     </div>

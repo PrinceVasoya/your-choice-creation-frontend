@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -10,7 +9,7 @@
       "destination": "http://your-choice-creation.runasp.net/uploads/:path*"
     },
     {
-      "source": "/((?!api|uploads|assets|.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
