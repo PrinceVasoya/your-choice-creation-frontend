@@ -39,6 +39,11 @@ export const parseProductDescription = (desc: string) => {
   return { description: desc, variants: [], isCustomizationAvailable: false, customizationTypes: [], customizationInstructions: '', images: [] };
 };
 
+// Helper to generate a unique readable product code
+export const generateProductCode = () => {
+  return `PRD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+};
+
 // Helper to stringify description
 export const buildProductDescription = (desc: string, variants: any[], isCustomizationAvailable: boolean, customizationTypes: string[], customizationInstructions: string, images: string[]) => {
   const marker = '__CUSTOM_PRODUCT_DATA__:';
@@ -122,7 +127,7 @@ const getCustomizationDetails = (item: any) => {
   if (item.customization) {
     let img = item.customization.imageUrl || item.customization.image || null;
     if (img && img.startsWith('/uploads')) {
-      img = `${baseUrl}${img}`;
+      img = img;
     }
     return {
       text: item.customization.text || item.customization.note || null,
@@ -135,7 +140,7 @@ const getCustomizationDetails = (item: any) => {
   if (typeof note === 'object') {
     let img = note.imageUrl || note.image || null;
     if (img && img.startsWith('/uploads')) {
-      img = `${baseUrl}${img}`;
+      img = img;
     }
     return {
       text: note.text || note.note || null,
@@ -153,7 +158,7 @@ const getCustomizationDetails = (item: any) => {
         const parsed = JSON.parse(trimmed);
         let img = parsed.imageUrl || parsed.image || parsed.customImage || null;
         if (img && img.startsWith('/uploads')) {
-          img = `${baseUrl}${img}`;
+          img = img;
         }
         return {
           text: parsed.text || parsed.note || parsed.customText || null,
@@ -175,7 +180,7 @@ const getCustomizationDetails = (item: any) => {
     if (trimmed.startsWith('/uploads')) {
       return {
         text: null,
-        imageUrl: `${baseUrl}${trimmed}`
+        imageUrl: trimmed
       };
     }
 
@@ -272,7 +277,7 @@ const CustomImagePreview = ({ imageUrl, orderId, itemIndex }: { imageUrl: string
 
 export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -327,7 +332,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Order Details Modal states
   const [productImages, setProductImages] = useState<Record<number, string>>({});
@@ -360,6 +365,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
   const [isAdminProductDescExpanded, setIsAdminProductDescExpanded] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [productName, setProductName] = useState('');
+  const [productCode, setProductCode] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productDiscountPrice, setProductDiscountPrice] = useState('');
   const [productStock, setProductStock] = useState('100');
@@ -388,6 +394,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
 
   // Fetch Category List
   const fetchCategories = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch('/api/categories');
       if (res.ok) {
@@ -398,11 +405,14 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       }
     } catch (err) {
                         
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Fetch Product List
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch('/api/products?pageSize=100');
       if (res.ok) {
@@ -420,15 +430,29 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       }
     } catch (err) {
                         
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleAuthError = (res: Response) => {
+    if (res.status === 401) {
+      triggerToast('Session expired. Please log in again.', true);
+      logout();
+      navigate('/login');
+      return true;
+    }
+    return false;
   };
 
   // Fetch Customer List
   const fetchCustomers = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch('/api/users/admin/all', {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
+      if (handleAuthError(res)) return;
       if (res.ok) {
         const json = await res.json();
         if ((json.success || json.succeeded) && json.data) {
@@ -437,15 +461,19 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       }
     } catch (err) {
                         
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Fetch Order List
   const fetchOrders = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch('/api/orders/admin/all?pageSize=100', {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
+      if (handleAuthError(res)) return;
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
@@ -454,6 +482,8 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       }
     } catch (err) {
                         
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -466,9 +496,11 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       const custRes = await fetch('/api/users/admin/all', {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
+      if (handleAuthError(custRes)) return;
       const ordRes = await fetch('/api/orders/admin/all?pageSize=100', {
         headers: { 'Authorization': `Bearer ${user?.token}` }
       });
+      if (handleAuthError(ordRes)) return;
 
       let revenue = 0;
       let thisYearRevenue = 0;
@@ -548,6 +580,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
 
   useEffect(() => {
     if (user?.token) {
+      setIsLoading(true);
       if (currentPath === '/admin' || currentPath === '/admin/dashboard') aggregateDashboard();
       if (currentPath === '/admin/categories') fetchCategories();
       if (currentPath === '/admin/products') {
@@ -725,6 +758,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
   const handleOpenProductCreate = () => {
     setEditingProductId(null);
     setProductName('');
+    setProductCode(generateProductCode());
     setProductPrice('');
     setProductDiscountPrice('');
     setProductStock('100');
@@ -750,6 +784,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
   const handleOpenProductEdit = (prod: any) => {
     setEditingProductId(prod.id);
     setProductName(prod.name);
+    setProductCode(prod.productCode || '');
     setProductPrice(String(prod.price));
     setProductDiscountPrice(prod.discountPrice ? String(prod.discountPrice) : '');
     setProductStock(String(prod.stock));
@@ -790,18 +825,18 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       return;
     }
     if (!productPrice || Number(productPrice) <= 0) {
-      triggerToast('Price must be greater than 0.', true);
-      setProductFormError('Price must be greater than 0.');
+      triggerToast('Selling Price must be greater than 0.', true);
+      setProductFormError('Selling Price must be greater than 0.');
       return;
     }
-    if (productDiscountPrice && Number(productDiscountPrice) >= Number(productPrice)) {
-      triggerToast('Discount Price must be less than original Price.', true);
-      setProductFormError('Discount Price must be less than original Price.');
+    if (productDiscountPrice && Number(productDiscountPrice) <= Number(productPrice)) {
+      triggerToast('MRP / Crossed-out Price must be greater than Selling Price.', true);
+      setProductFormError('MRP / Crossed-out Price must be greater than Selling Price.');
       return;
     }
     if (productDiscountPrice && Number(productDiscountPrice) < 0) {
-      triggerToast('Discount Price cannot be negative.', true);
-      setProductFormError('Discount Price cannot be negative.');
+      triggerToast('MRP / Crossed-out Price cannot be negative.', true);
+      setProductFormError('MRP / Crossed-out Price cannot be negative.');
       return;
     }
     if (!productStock || Number(productStock) < 0 || productStock.includes('.')) {
@@ -850,6 +885,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
     setProductFormError('');
     const formData = new FormData();
     formData.append('Name', productName);
+    formData.append('ProductCode', productCode);
     formData.append('Price', productPrice);
     if (productDiscountPrice) {
       formData.append('DiscountPrice', productDiscountPrice);
@@ -875,6 +911,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
         body: formData
       });
 
+      if (handleAuthError(response)) return;
       const result = await response.json();
 
       if (response.ok && (result.success || result.succeeded)) {
@@ -1197,23 +1234,35 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                               </tr>
                             </thead>
                             <tbody className="text-sm">
-                              {dashboardData.recentOrders.map((o) => (
-                                <tr key={o.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/30">
-                                  <td className="py-4 font-bold text-gray-900">{o.orderNumber}</td>
-                                  <td className="py-4 text-gray-600">{o.shippingAddress?.fullName || 'Customer'}</td>
-                                  <td className="py-4 font-bold text-gray-900">{formatCurrency(o.totalAmount)}</td>
-                                  <td className="py-4 text-xs text-gray-400">{formatDate(o.createdAt)}</td>
-                                  <td className="py-4">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                                      o.status === 'Delivered' ? 'bg-green-100 text-green-600' : 
-                                      o.status === 'Pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'
-                                    }`}>
-                                      {o.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                              {dashboardData.recentOrders.length === 0 && (
+                              {isLoading ? (
+                                Array.from({ length: 5 }).map((_, idx) => (
+                                  <tr key={idx} className="animate-pulse border-b border-gray-50 last:border-0 text-sm">
+                                    <td className="py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                                    <td className="py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                                    <td className="py-4"><div className="h-4 bg-gray-200 rounded w-12"></div></td>
+                                    <td className="py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                                    <td className="py-4"><div className="h-5 bg-gray-200 rounded-full w-16"></div></td>
+                                  </tr>
+                                ))
+                              ) : (
+                                dashboardData.recentOrders.map((o) => (
+                                  <tr key={o.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/30">
+                                    <td className="py-4 font-bold text-gray-900">{o.orderNumber}</td>
+                                    <td className="py-4 text-gray-600">{o.shippingAddress?.fullName || 'Customer'}</td>
+                                    <td className="py-4 font-bold text-gray-900">{formatCurrency(o.totalAmount)}</td>
+                                    <td className="py-4 text-xs text-gray-400">{formatDate(o.createdAt)}</td>
+                                    <td className="py-4">
+                                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                                        o.status === 'Delivered' ? 'bg-green-100 text-green-600' : 
+                                        o.status === 'Pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'
+                                      }`}>
+                                        {o.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                              {!isLoading && dashboardData.recentOrders.length === 0 && (
                                 <tr>
                                   <td colSpan={5} className="py-8 text-center text-sm text-gray-400">No orders placed yet.</td>
                                 </tr>
@@ -1281,34 +1330,58 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {categories.map((cat) => (
-                          <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors text-sm">
-                            <td className="px-8 py-5">
-                              <img src={cat.imageUrl || 'https://picsum.photos/seed/cat/100/100'} alt={cat.name} className="w-10 h-10 rounded-lg object-cover bg-secondary" />
-                            </td>
-                            <td className="px-8 py-5 font-bold text-gray-900">{cat.name}</td>
-                            <td className="px-8 py-5 text-gray-400 font-mono text-xs">
-                              {cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
-                            </td>
-                            <td className="px-8 py-5">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                                cat.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                              }`}>
-                                {cat.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 text-right">
-                              <div className="flex justify-end space-x-2">
-                                <button onClick={() => handleOpenCategoryEdit(cat)} className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer"><Edit size={16} /></button>
-                                <button onClick={() => handleConfirmDeleteCategory(cat)} className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"><Trash2 size={16} /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {categories.length === 0 && (
+                        {isLoading ? (
+                          Array.from({ length: 5 }).map((_, idx) => (
+                            <tr key={idx} className="animate-pulse text-sm">
+                              <td className="px-8 py-5">
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-3 bg-gray-200 rounded w-24"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : categories.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-8 py-10 text-center text-gray-400">No categories found in the database.</td>
                           </tr>
+                        ) : (
+                          categories.map((cat) => (
+                            <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors text-sm">
+                              <td className="px-8 py-5">
+                                <img src={cat.imageUrl || 'https://picsum.photos/seed/cat/100/100'} alt={cat.name} className="w-10 h-10 rounded-lg object-cover bg-secondary" />
+                              </td>
+                              <td className="px-8 py-5 font-bold text-gray-900">{cat.name}</td>
+                              <td className="px-8 py-5 text-gray-400 font-mono text-xs">
+                                {cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
+                              </td>
+                              <td className="px-8 py-5">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                                  cat.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                }`}>
+                                  {cat.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <button onClick={() => handleOpenCategoryEdit(cat)} className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer"><Edit size={16} /></button>
+                                  <button onClick={() => handleConfirmDeleteCategory(cat)} className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"><Trash2 size={16} /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                         )}
                       </tbody>
                     </table>
@@ -1426,45 +1499,81 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {products.map((p) => {
-                          const mapped = mapApiProductToFrontend(p);
-                          return (
-                            <tr key={mapped.id} className="hover:bg-gray-50/50 transition-colors text-sm">
+                        {isLoading ? (
+                          Array.from({ length: 5 }).map((_, idx) => (
+                            <tr key={idx} className="animate-pulse text-sm">
                               <td className="px-8 py-5">
                                 <div className="flex items-center space-x-4">
-                                  <img src={mapped.image} alt={mapped.name} className="w-10 h-10 rounded-lg object-cover bg-secondary" />
-                                  <div>
-                                    <p className="font-bold text-gray-900">{mapped.name}</p>
-                                    <p className="text-[10px] text-gray-400 italic">SKU ID: {mapped.id}</p>
+                                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                                  <div className="space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-40"></div>
+                                    <div className="h-3 bg-gray-100 rounded w-20"></div>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-8 py-5">
-                                <span className="text-xs font-medium text-gray-600">{mapped.category}</span>
+                                <div className="h-4 bg-gray-200 rounded w-20"></div>
                               </td>
-                              <td className="px-8 py-5 font-bold text-gray-900">{formatCurrency(mapped.price)}</td>
-                              <td className="px-8 py-5 text-gray-500 font-medium">{p.stock} units</td>
                               <td className="px-8 py-5">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                                  p.stock > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                                }`}>
-                                  {p.stock > 0 ? 'In Stock' : 'Out of Stock'}
-                                </span>
+                                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-5 bg-gray-200 rounded-full w-16"></div>
                               </td>
                               <td className="px-8 py-5 text-right">
                                 <div className="flex justify-end space-x-2">
-                                  <button onClick={() => { setSelectedProductForView(p); setIsProductViewModalOpen(true); }} className="p-2 text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"><Eye size={16} /></button>
-                                  <button onClick={() => handleOpenProductEdit(p)} className="p-2 text-gray-400 hover:text-primary transition-colors cursor-pointer"><Edit size={16} /></button>
-                                  <button onClick={() => handleConfirmDeleteProduct(p)} className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"><Trash2 size={16} /></button>
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
                                 </div>
                               </td>
                             </tr>
-                          );
-                        })}
-                        {products.length === 0 && (
+                          ))
+                        ) : products.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-8 py-10 text-center text-gray-400">No products found in the database.</td>
                           </tr>
+                        ) : (
+                          products.map((p) => {
+                            const mapped = mapApiProductToFrontend(p);
+                            return (
+                              <tr key={mapped.id} className="hover:bg-gray-50/50 transition-colors text-sm">
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center space-x-4">
+                                    <img src={mapped.image} alt={mapped.name} className="w-10 h-10 rounded-lg object-cover bg-secondary" />
+                                    <div>
+                                      <p className="font-bold text-gray-900">{mapped.name}</p>
+                                      {p.productCode && (
+                                        <p className="text-[10px] text-primary font-mono font-semibold">Code: {p.productCode}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5">
+                                  <span className="text-xs font-medium text-gray-600">{mapped.category}</span>
+                                </td>
+                                <td className="px-8 py-5 font-bold text-gray-900">{formatCurrency(mapped.price)}</td>
+                                <td className="px-8 py-5 text-gray-550 font-medium">{p.stock} units</td>
+                                <td className="px-8 py-5">
+                                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                                    p.stock > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                  }`}>
+                                    {p.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                  <div className="flex justify-end space-x-2">
+                                    <button onClick={() => { setSelectedProductForView(p); setIsProductViewModalOpen(true); }} className="p-2 text-gray-450 hover:text-blue-550 transition-colors cursor-pointer"><Eye size={16} /></button>
+                                    <button onClick={() => handleOpenProductEdit(p)} className="p-2 text-gray-450 hover:text-primary transition-colors cursor-pointer"><Edit size={16} /></button>
+                                    <button onClick={() => handleConfirmDeleteProduct(p)} className="p-2 text-gray-450 hover:text-red-550 transition-colors cursor-pointer"><Trash2 size={16} /></button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
@@ -1498,68 +1607,92 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {orders.map((o) => (
-                          <tr key={o.id} className="hover:bg-gray-50/50 transition-colors text-sm">
-                            <td className="px-8 py-5 font-bold text-gray-900">
-                              <button 
-                                onClick={() => handleOpenOrderDetail(o)} 
-                                className="font-bold text-gray-900 hover:text-primary hover:underline transition-colors text-left focus:outline-none cursor-pointer"
-                              >
-                                {o.orderNumber}
-                              </button>
-                            </td>
-                            <td className="px-8 py-5 text-gray-600 font-medium">{o.shippingAddress?.fullName || 'Customer'}</td>
-                            <td className="px-8 py-5 font-bold text-gray-900">{formatCurrency(o.totalAmount)}</td>
-                            <td className="px-8 py-5">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusBadgeClass(o.status)}`}>
-                                {o.status}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 text-center" style={{ width: '140px' }}>
-                              <div className="flex flex-col items-center justify-center mx-auto space-y-1.5" style={{ width: '120px' }}>
-                                <button 
-                                  onClick={() => handleOpenOrderDetail(o)} 
-                                  className="w-full px-[14px] py-[6px] border-[1.5px] rounded-lg text-[13px] font-medium transition-all cursor-pointer text-center"
-                                  style={{
-                                    border: '1.5px solid #2563eb',
-                                    color: '#2563eb',
-                                    backgroundColor: 'white'
-                                  }}
-                                  onMouseOver={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#2563eb';
-                                    e.currentTarget.style.color = 'white';
-                                  }}
-                                  onMouseOut={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'white';
-                                    e.currentTarget.style.color = '#2563eb';
-                                  }}
-                                >
-                                  View Details
-                                </button>
-                                <button 
-                                  onClick={() => handleOpenOrderManage(o)} 
-                                  className="w-full px-[14px] py-[6px] rounded-lg text-[13px] font-medium border-none transition-all cursor-pointer text-center"
-                                  style={{
-                                    backgroundColor: '#1e293b',
-                                    color: 'white'
-                                  }}
-                                  onMouseOver={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#334155';
-                                  }}
-                                  onMouseOut={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#1e293b';
-                                  }}
-                                >
-                                  Manage
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {orders.length === 0 && (
+                        {isLoading ? (
+                          Array.from({ length: 5 }).map((_, idx) => (
+                            <tr key={idx} className="animate-pulse text-sm">
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-24"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+                              </td>
+                              <td className="px-8 py-5 text-center">
+                                <div className="flex flex-col items-center space-y-1.5 mx-auto w-[120px]">
+                                  <div className="w-full h-8 bg-gray-200 rounded-lg"></div>
+                                  <div className="w-full h-8 bg-gray-150 rounded-lg"></div>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : orders.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-8 py-10 text-center text-gray-400">No orders placed yet.</td>
                           </tr>
+                        ) : (
+                          orders.map((o) => (
+                            <tr key={o.id} className="hover:bg-gray-50/50 transition-colors text-sm">
+                              <td className="px-8 py-5 font-bold text-gray-900">
+                                <button 
+                                  onClick={() => handleOpenOrderDetail(o)} 
+                                  className="font-bold text-gray-900 hover:text-primary hover:underline transition-colors text-left focus:outline-none cursor-pointer"
+                                >
+                                  {o.orderNumber}
+                                </button>
+                              </td>
+                              <td className="px-8 py-5 text-gray-600 font-medium">{o.shippingAddress?.fullName || 'Customer'}</td>
+                              <td className="px-8 py-5 font-bold text-gray-900">{formatCurrency(o.totalAmount)}</td>
+                              <td className="px-8 py-5">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusBadgeClass(o.status)}`}>
+                                  {o.status}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-center" style={{ width: '140px' }}>
+                                <div className="flex flex-col items-center justify-center mx-auto space-y-1.5" style={{ width: '120px' }}>
+                                  <button 
+                                    onClick={() => handleOpenOrderDetail(o)} 
+                                    className="w-full px-[14px] py-[6px] border-[1.5px] rounded-lg text-[13px] font-medium transition-all cursor-pointer text-center"
+                                    style={{
+                                      border: '1.5px solid #2563eb',
+                                      color: '#2563eb',
+                                      backgroundColor: 'white'
+                                    }}
+                                    onMouseOver={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#2563eb';
+                                      e.currentTarget.style.color = 'white';
+                                    }}
+                                    onMouseOut={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'white';
+                                      e.currentTarget.style.color = '#2563eb';
+                                    }}
+                                  >
+                                    View Details
+                                  </button>
+                                  <button 
+                                    onClick={() => handleOpenOrderManage(o)} 
+                                    className="w-full px-[14px] py-[6px] rounded-lg text-[13px] font-medium border-none transition-all cursor-pointer text-center"
+                                    style={{
+                                      backgroundColor: '#1e293b',
+                                      color: 'white'
+                                    }}
+                                    onMouseOver={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#334155';
+                                    }}
+                                    onMouseOut={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#1e293b';
+                                    }}
+                                  >
+                                    Manage
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                         )}
                       </tbody>
                     </table>
@@ -1711,7 +1844,12 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                                     </div>
                                     
                                     <div className="space-y-1 text-xs">
-                                      <h4 className="font-bold text-gray-900 text-sm hover:text-primary transition-colors">{productName}</h4>
+                                      <h4 className="font-bold text-gray-900 text-sm hover:text-primary transition-colors">
+                                        {productName}{' '}
+                                        {item.productCode && (
+                                          <span className="text-[10px] text-gray-400 font-mono font-normal">({item.productCode})</span>
+                                        )}
+                                      </h4>
                                       <p className="text-gray-500 font-medium">
                                         {size ? `Size: ${size}  |  ` : ''}Qty: {quantity}
                                       </p>
@@ -2031,41 +2169,65 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {customers.map((c, i) => (
-                          <tr key={c.id || i} className="hover:bg-gray-50/50 transition-colors text-sm">
-                            <td className="px-8 py-5">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-xs uppercase">
-                                  {c.firstName ? c.firstName[0] : 'U'}
+                        {isLoading ? (
+                          Array.from({ length: 5 }).map((_, idx) => (
+                            <tr key={idx} className="animate-pulse text-sm">
+                              <td className="px-8 py-5">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                                  <div className="h-4 bg-gray-200 rounded w-28"></div>
                                 </div>
-                                <span className="font-bold text-gray-900">{c.firstName} {c.lastName}</span>
-                              </div>
-                            </td>
-                            <td className="px-8 py-5 text-gray-500 font-semibold">{c.email}</td>
-                            <td className="px-8 py-5 text-gray-400 text-xs">{formatDate(c.createdAt || new Date().toISOString())}</td>
-                            <td className="px-8 py-5">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                                c.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                              }`}>
-                                {c.isActive ? 'Active' : 'Blocked'}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 text-right">
-                              <button 
-                                onClick={() => handleToggleCustomerStatus(c)}
-                                className={`text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl border transition-all cursor-pointer ${
-                                  c.isActive ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'
-                                }`}
-                              >
-                                {c.isActive ? 'Block' : 'Unblock'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        {customers.length === 0 && (
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-44"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-4 bg-gray-200 rounded w-20"></div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <div className="w-16 h-8 bg-gray-200 rounded-xl ml-auto"></div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : customers.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-8 py-10 text-center text-gray-400">No customers found in database.</td>
                           </tr>
+                        ) : (
+                          customers.map((c, i) => (
+                            <tr key={c.id || i} className="hover:bg-gray-50/50 transition-colors text-sm">
+                              <td className="px-8 py-5">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-xs uppercase">
+                                    {c.firstName ? c.firstName[0] : 'U'}
+                                  </div>
+                                  <span className="font-bold text-gray-900">{c.firstName} {c.lastName}</span>
+                                </div>
+                              </td>
+                              <td className="px-8 py-5 text-gray-550 font-semibold">{c.email}</td>
+                              <td className="px-8 py-5 text-gray-400 text-xs">{formatDate(c.createdAt || new Date().toISOString())}</td>
+                              <td className="px-8 py-5">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                                  c.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                }`}>
+                                  {c.isActive ? 'Active' : 'Blocked'}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <button 
+                                  onClick={() => handleToggleCustomerStatus(c)}
+                                  className={`text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl border transition-all cursor-pointer ${
+                                    c.isActive ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'
+                                  }`}
+                                >
+                                  {c.isActive ? 'Block' : 'Unblock'}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
                         )}
                       </tbody>
                     </table>
@@ -2119,6 +2281,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
       <AnimatePresence>
         {isProductViewModalOpen && selectedProductForView && (() => {
           const mapped = mapApiProductToFrontend(selectedProductForView);
+          const parsed = parseProductDescription(selectedProductForView.description || '');
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
               <motion.div 
@@ -2147,7 +2310,11 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                     <div className="space-y-2">
                       <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">{mapped.category}</span>
                       <h3 className="text-2xl font-serif font-bold text-gray-900 leading-tight">{mapped.name}</h3>
-                      <p className="text-[10px] text-gray-400 font-mono">SKU ID: {mapped.id}</p>
+                      {selectedProductForView.productCode && (
+                        <div className="text-[10px] text-gray-400 font-mono">
+                          <span className="font-bold text-primary">Code: {selectedProductForView.productCode}</span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-1">
@@ -2174,27 +2341,72 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                   </div>
                 </div>
                 
-                <div className="space-y-3 border-t border-gray-50 pt-6">
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Description Details</p>
-                  <div className="product-description bg-secondary/35 p-6 rounded-2xl border border-gray-50">
-                    <p className="desc-text text-sm text-gray-600 leading-relaxed">
-                      {selectedProductForView.description
-                        ? (selectedProductForView.description.length > 180 && !isAdminProductDescExpanded
-                          ? selectedProductForView.description.substring(0, 180) + '...'
-                          : selectedProductForView.description)
-                        : 'No description provided.'
-                      }
-                    </p>
-                    {selectedProductForView.description && selectedProductForView.description.length > 180 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsAdminProductDescExpanded(!isAdminProductDescExpanded)}
-                        className="desc-toggle-btn text-primary font-bold text-xs mt-2 focus:outline-none"
-                      >
-                        {isAdminProductDescExpanded ? 'Show Less ▲' : 'Read More ▼'}
-                      </button>
-                    )}
+                <div className="space-y-4 border-t border-gray-50 pt-6">
+                  <div>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Description Details</p>
+                    <div className="product-description bg-secondary/35 p-6 rounded-2xl border border-gray-50">
+                      <p className="desc-text text-sm text-gray-600 leading-relaxed font-semibold">
+                        {parsed.description || 'No description provided.'}
+                      </p>
+                    </div>
                   </div>
+
+                  {parsed.isCustomizationAvailable && (
+                    <div className="bg-green-50/50 border border-green-100 p-5 rounded-2xl space-y-2.5 text-xs text-green-800">
+                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                        <span>✨ Customization Options Enabled</span>
+                      </div>
+                      {parsed.customizationTypes && parsed.customizationTypes.length > 0 && (
+                        <p className="font-semibold">
+                          <span className="text-gray-400 font-normal">Allowed Inputs:</span>{' '}
+                          {parsed.customizationTypes.map((type: string) => type === 'image' ? '🖼 Image Upload' : '📝 Custom Text').join(', ')}
+                        </p>
+                      )}
+                      {parsed.customizationInstructions && (
+                        <p className="font-semibold italic">
+                          <span className="text-gray-400 font-normal block not-italic mb-0.5">Instructions:</span>
+                          "{parsed.customizationInstructions}"
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {parsed.variants && parsed.variants.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Available Options / Variants</p>
+                      <div className="flex flex-col gap-2">
+                        {parsed.variants.map((v: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 border border-gray-150 p-4 rounded-xl text-xs flex justify-between items-center">
+                            <span className="font-bold text-gray-700">{v.type}</span>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {v.values.map((val: string, valIdx: number) => (
+                                <span key={valIdx} className="bg-white border border-gray-200 text-gray-600 px-2.5 py-1 rounded-lg font-medium shadow-3xs">
+                                  {val}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {parsed.images && parsed.images.length > 1 && (
+                    <div className="space-y-2">
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Product Gallery Images</p>
+                      <div className="flex gap-3 overflow-x-auto py-1">
+                        {parsed.images.map((url: string, imgIdx: number) => (
+                          <img 
+                            key={imgIdx} 
+                            src={url} 
+                            alt={`Gallery image ${imgIdx + 1}`} 
+                            className="w-20 h-20 object-cover rounded-xl border border-gray-150 shadow-2xs hover:scale-105 transition-all cursor-pointer flex-shrink-0"
+                            onClick={() => window.open(url, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>
@@ -2228,6 +2440,30 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
               placeholder="e.g. Magic Color Changing Mug" 
               className="w-full px-5 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 text-sm font-medium" 
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-1.5 ml-1">
+              <Package size={12} className="text-primary" />
+              <span>Product Code</span>
+            </label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                required
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value.toUpperCase())}
+                placeholder="e.g. PRD-A1B2C3" 
+                className="flex-grow px-5 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 text-sm font-medium" 
+              />
+              <button
+                type="button"
+                onClick={() => setProductCode(generateProductCode())}
+                className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer"
+              >
+                Regenerate
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -2267,7 +2503,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-1.5 ml-1">
                 <DollarSign size={12} className="text-primary" />
-                <span>REAL PRICE (₹)</span>
+                <span>SELLING PRICE (₹)</span>
               </label>
               <input 
                 type="number" 
@@ -2277,20 +2513,22 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                 placeholder="399" 
                 className="w-full px-5 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 text-sm font-medium" 
               />
+              <p className="text-[9px] text-gray-400 ml-1">Actual price customer pays</p>
             </div>
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-1.5 ml-1">
                 <DollarSign size={12} className="text-primary" />
-                <span>FAKE PRICE (₹)</span>
+                <span>MRP / CROSSED-OUT PRICE (₹)</span>
               </label>
               <input 
                 type="number" 
                 value={productDiscountPrice}
                 onChange={(e) => setProductDiscountPrice(e.target.value)}
-                placeholder="299" 
+                placeholder="799" 
                 className="w-full px-5 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 text-sm font-medium" 
               />
+              <p className="text-[9px] text-gray-400 ml-1">Shown crossed-out (must be &gt; Selling Price)</p>
             </div>
           </div>
 
@@ -2769,7 +3007,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
 
 // --- Inner Form component for Add Product CRUD ---
 const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError: boolean) => void }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
@@ -2777,6 +3015,7 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
 
   // Form Fields
   const [name, setName] = useState('');
+  const [productCode, setProductCode] = useState(generateProductCode());
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -2822,15 +3061,15 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
       return;
     }
     if (!price || Number(price) <= 0) {
-      triggerToast('Price must be greater than 0.', true);
+      triggerToast('Selling Price must be greater than 0.', true);
       return;
     }
-    if (discountPrice && Number(discountPrice) >= Number(price)) {
-      triggerToast('Discount Price must be less than original Price.', true);
+    if (discountPrice && Number(discountPrice) <= Number(price)) {
+      triggerToast('MRP / Crossed-out Price must be greater than Selling Price.', true);
       return;
     }
     if (discountPrice && Number(discountPrice) < 0) {
-      triggerToast('Discount Price cannot be negative.', true);
+      triggerToast('MRP / Crossed-out Price cannot be negative.', true);
       return;
     }
     if (!stock || Number(stock) < 0 || stock.includes('.')) {
@@ -2872,6 +3111,7 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append('Name', name);
+    formData.append('ProductCode', productCode);
     formData.append('Price', price);
     if (discountPrice) formData.append('DiscountPrice', discountPrice);
     formData.append('Description', finalDescription);
@@ -2890,6 +3130,12 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
         body: formData
       });
 
+      if (response.status === 401) {
+        triggerToast('Session expired. Please log in again.', true);
+        logout();
+        navigate('/login');
+        return;
+      }
       const result = await response.json();
 
       if (response.ok && (result.success || result.succeeded)) {
@@ -2956,6 +3202,30 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-2 ml-1">
+              <Package size={12} className="text-primary" />
+              <span>Product Code</span>
+            </label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                required
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value.toUpperCase())}
+                placeholder="e.g. PRD-A1B2C3" 
+                className="flex-grow px-5 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm" 
+              />
+              <button
+                type="button"
+                onClick={() => setProductCode(generateProductCode())}
+                className="bg-primary/10 text-primary px-5 py-4 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer border-none"
+              >
+                Regenerate
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-2 ml-1">
               <FolderOpen size={12} className="text-primary" />
               <span>Category Dropdown</span>
             </label>
@@ -2973,7 +3243,7 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-2 ml-1">
               <DollarSign size={12} className="text-primary" />
-              <span>REAL PRICE (₹)</span>
+              <span>SELLING PRICE (₹)</span>
             </label>
             <input 
               type="number" 
@@ -2983,20 +3253,22 @@ const AddProductForm = ({ triggerToast }: { triggerToast: (msg: string, isError:
               placeholder="399" 
               className="w-full px-5 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm" 
             />
+            <p className="text-[9px] text-gray-400 ml-1">Actual price customer pays</p>
           </div>
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center space-x-2 ml-1">
               <DollarSign size={12} className="text-primary" />
-              <span>FAKE PRICE (₹)</span>
+              <span>MRP / CROSSED-OUT PRICE (₹)</span>
             </label>
             <input 
               type="number" 
               value={discountPrice}
               onChange={(e) => setDiscountPrice(e.target.value)}
-              placeholder="299" 
+              placeholder="799" 
               className="w-full px-5 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm" 
             />
+            <p className="text-[9px] text-gray-400 ml-1">Shown crossed-out (must be &gt; Selling Price)</p>
           </div>
 
           <div className="space-y-2">

@@ -10,7 +10,7 @@
       "destination": "http://your-choice-creation.runasp.net/uploads/:path*"
     },
     {
-      "source": "/:path*",
+      "source": "/((?!api|uploads|assets|.*\\.).*)",
       "destination": "/index.html"
     }
   ]
