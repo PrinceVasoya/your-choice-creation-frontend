@@ -1,11 +1,25 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, User, ArrowRight, Chrome, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getCookie, deleteCookie } from '../utils/cookies';
 import usePageTitle from '../hooks/usePageTitle';
+
+/**
+ * Guard against open-redirect attacks.
+ * Only allows same-origin relative paths (must start with '/').
+ * Rejects: protocol-relative (//evil.com), absolute URLs (http://...), empty values.
+ */
+function safeRedirectPath(value: string | null | undefined): string {
+  if (!value) return '/';
+  // Reject protocol-relative and absolute URLs
+  if (value.startsWith('//') || /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(value)) return '/';
+  // Ensure it's a relative path starting with /
+  if (!value.startsWith('/')) return `/${value}`;
+  return value;
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -47,15 +61,7 @@ export default function Auth() {
       const searchParams = new URLSearchParams(window.location.search);
       const queryRedirect = searchParams.get('redirect');
       const localRedirect = localStorage.getItem("redirectAfterLogin");
-      
-      let redirectTo = localRedirect || queryRedirect || "/";
-      if (redirectTo && !redirectTo.startsWith('/')) {
-        redirectTo = `/${redirectTo}`;
-      }
-      
-      console.log("Login successful");
-      console.log("Reading redirect:", localRedirect);
-      console.log("Navigating to:", redirectTo);
+      const redirectTo = safeRedirectPath(localRedirect || queryRedirect);
       localStorage.removeItem("redirectAfterLogin");
       navigate(redirectTo, { replace: true });
     }
@@ -113,36 +119,27 @@ export default function Auth() {
     const cookieRedirect = getCookie('redirectAfterLogin');
     const cartDataStr = getCookie('cartData');
 
-    let redirect = localRedirect || queryRedirect || cookieRedirect || '/';
+    // Validate all redirect sources — reject anything that isn't a safe relative path
+    const redirect = safeRedirectPath(localRedirect || queryRedirect || cookieRedirect);
 
-    if (redirect) {
-      if (!redirect.startsWith('/')) {
-        redirect = `/${redirect}`;
-      }
-
-      console.log("Login successful");
-      console.log("Reading redirect:", localRedirect);
-      console.log("Navigating to:", redirect);
-
-      if (redirect.startsWith('/cart') || redirect.startsWith('/checkout')) {
-        if (cartDataStr) {
-          try {
-            const restoredItems = JSON.parse(cartDataStr);
-            restoreCart(restoredItems);
-          } catch (e) {
-                                                      
-          }
-          deleteCookie('cartData');
+    if (redirect.startsWith('/cart') || redirect.startsWith('/checkout')) {
+      if (cartDataStr) {
+        try {
+          const restoredItems = JSON.parse(cartDataStr);
+          restoreCart(restoredItems);
+        } catch (e) {
+          // Ignore malformed cart cookie
         }
+        deleteCookie('cartData');
       }
-
-      localStorage.removeItem('redirectAfterLogin');
-      deleteCookie('redirectAfterLogin');
-      
-      setTimeout(() => {
-        navigate(redirect, { replace: true });
-      }, 500);
     }
+
+    localStorage.removeItem('redirectAfterLogin');
+    deleteCookie('redirectAfterLogin');
+
+    setTimeout(() => {
+      navigate(redirect, { replace: true });
+    }, 500);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -189,31 +186,8 @@ export default function Auth() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    const googleEmail = 'google_user@gmail.com';
-    const googlePassword = 'GoogleUser123!';
-    
-    let loginRes = await login(googleEmail, googlePassword);
-    let success = loginRes.success;
-    
-    if (!success) {
-      const regRes = await register('Google User', googleEmail, googlePassword);
-      if (regRes.success) {
-        const loginRes2 = await login(googleEmail, googlePassword);
-        success = loginRes2.success;
-      }
-    }
-
-    setIsLoading(false);
-
-    if (success) {
-      triggerToast('Login Successful! Welcome back', false);
-      handleRedirectLogic();
-    } else {
-      triggerToast('Google login simulation failed. Try again', true);
-    }
-  };
+  // Note: Google OAuth removed (was a fake simulation with hardcoded credentials).
+  // To add real Google login, integrate @react-oauth/google with a proper OAuth flow.
 
   return (
     <div className="min-h-screen bg-secondary flex items-center justify-center p-6 py-20 relative select-none">
@@ -419,26 +393,7 @@ export default function Auth() {
             </button>
           </form>
 
-          <div className="mt-6 mb-5 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-150"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-widest font-extrabold select-none">
-              <span className="bg-white px-3.5 text-gray-400">OR</span>
-            </div>
-          </div>
 
-          {/* Google Button */}
-          <div>
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-2 h-12 border border-gray-250 rounded-xl hover:bg-gray-50 transition-all shadow-2xs cursor-pointer disabled:opacity-50 active:scale-95 text-xs font-bold text-gray-700"
-            >
-              <Chrome size={16} className="text-red-500" />
-              <span>Continue with Google</span>
-            </button>
-          </div>
         </div>
 
         {/* Tab triggers toggling isLogin */}

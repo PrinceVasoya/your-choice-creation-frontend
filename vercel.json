@@ -2,15 +2,42 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://your-choice-creation.runasp.net/api/:path*"
+      "destination": "https://your-choice-creation.runasp.net/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "http://your-choice-creation.runasp.net/uploads/:path*"
+      "destination": "https://your-choice-creation.runasp.net/uploads/:path*"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://your-choice-creation.runasp.net https://picsum.photos; font-src 'self'; connect-src 'self' https://your-choice-creation.runasp.net https://api.razorpay.com; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
     }
   ]
 }

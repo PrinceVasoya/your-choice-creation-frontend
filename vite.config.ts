@@ -7,10 +7,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.REACT_APP_RAZORPAY_KEY_ID': JSON.stringify(env.REACT_APP_RAZORPAY_KEY_ID),
-    },
+    // NOTE: Do NOT add GEMINI_API_KEY or any server-side secrets here.
+    // Vite `define` performs literal text substitution at build time —
+    // anything here ends up in the publicly downloadable JS bundle.
+    // Use import.meta.env.VITE_* for public Vite env vars only.
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

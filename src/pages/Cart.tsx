@@ -85,13 +85,11 @@ export default function Cart() {
     return cart.some(item => (item as any).stock === 0 || (item as any).stock === '0' || item.isDeleted);
   }, [cart]);
   const handleCheckoutClick = () => {
-    console.log("Place Order clicked");
     if (hasOutOfStockOrDeleted) {
       triggerToast('Item is now out of stock. Please remove it to proceed.', true);
       return;
     }
     if (!isAuthenticated) {
-      console.log("Saving redirect:", "/checkout");
       localStorage.setItem("redirectAfterLogin", "/checkout");
       navigate("/login?redirect=checkout");
       return;

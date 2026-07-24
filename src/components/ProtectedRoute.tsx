@@ -10,8 +10,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, user, isInitializing } = useAuth();
   const token = localStorage.getItem("token");
 
-  console.log("ProtectedRoute checking token");
-  console.log("Token found:", !!token);
+
 
   if (isInitializing) {
     return (

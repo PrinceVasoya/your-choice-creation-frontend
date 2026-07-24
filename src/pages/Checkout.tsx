@@ -7,24 +7,9 @@ import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
 import usePageTitle from '../hooks/usePageTitle';
 
-const loadRazorpayScript = () => {
-  return new Promise<boolean>((resolve) => {
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => {
-      resolve(true);
-    };
-    script.onerror = () => {
-      resolve(false);
-    };
-    document.body.appendChild(script);
-  });
-};
+// Razorpay SDK is loaded via a static <script> tag in index.html (defer).
+// We check window.Razorpay readiness synchronously at payment time.
+const isRazorpayReady = (): boolean => typeof (window as any).Razorpay !== 'undefined';
 
 const STATES = [
   'Andhra Pradesh', 'Assam', 'Bihar', 'Delhi', 'Goa', 'Gujarat',
@@ -39,7 +24,7 @@ export default function Checkout() {
   const { isAuthenticated, user, logout } = useAuth();
 
   useEffect(() => {
-    console.log("Checkout page mounted");
+    // Checkout page mounted
   }, []);
 
   // Wizard Step State: 2 = Address Selection/Form, 3 = Order Summary
@@ -99,7 +84,6 @@ export default function Checkout() {
   // Fetch saved addresses from backend database
   const fetchAddresses = async () => {
     if (!user?.token) return;
-    console.log("Fetching addresses...");
     setIsLoadingAddresses(true);
     try {
       const response = await fetch('/api/users/addresses', {
@@ -391,9 +375,9 @@ export default function Checkout() {
       }
 
       if (response.ok && (result.success || result.succeeded) && result.data) {
-        const scriptLoaded = await loadRazorpayScript();
+        const scriptLoaded = isRazorpayReady();
         if (!scriptLoaded) {
-          triggerToast('Failed to load Razorpay payment SDK. Are you online?', true);
+          triggerToast('Razorpay payment SDK not ready. Please refresh the page.', true);
           setIsSubmitting(false);
           return;
         }

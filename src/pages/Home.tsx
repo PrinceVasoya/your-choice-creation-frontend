@@ -34,7 +34,11 @@ export default function Home() {
       parent.style.display = 'flex';
       parent.style.alignItems = 'center';
       parent.style.justifyContent = 'center';
-      parent.innerHTML = `<span style="font-size:24px; font-weight:700; color:#555;">${name[0].toUpperCase()}</span>`;
+      const span = document.createElement('span');
+      span.style.cssText = 'font-size:24px; font-weight:700; color:#555;';
+      span.textContent = name[0].toUpperCase(); // textContent is XSS-safe; never interpolates HTML
+      parent.appendChild(span);
+
     }
   };
 
