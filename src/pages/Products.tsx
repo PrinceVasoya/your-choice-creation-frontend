@@ -54,7 +54,7 @@ export default function Products() {
         if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
           const mappedCats = catJson.data.map((c: any) => ({
             id: String(c.id),
-            name: c.name,
+            name: (c.name || '').trim(),
             image: c.imageUrl || 'https://images.unsplash.com/photo-1517254456776-9bb245d2b843?auto=format&fit=crop&w=400&h=400&q=80',
             count: 30 + (c.id * 15)
           }));
@@ -90,7 +90,8 @@ export default function Products() {
   // Filtering + Sorting Math Logic
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchCategory = selectedCategory === 'All' || p.category === selectedCategory;
+      const matchCategory = selectedCategory === 'All' || 
+        p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       const matchSearch = !searchParam || 
         p.name.toLowerCase().includes(searchParam.toLowerCase()) || 

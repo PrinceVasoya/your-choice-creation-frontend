@@ -56,7 +56,7 @@ export default function Home() {
         if ((catJson.success || catJson.succeeded) && catJson.data && catJson.data.length > 0) {
           const mappedCats = catJson.data.map((c: any) => ({
             id: String(c.id),
-            name: c.name,
+            name: (c.name || '').trim(),
             image: c.imageUrl || '',
             count: 30 + (c.id * 15)
           }));
@@ -71,7 +71,8 @@ export default function Home() {
         const prodJson = await prodRes.json();
         if (prodJson.data && prodJson.data.length > 0) {
           const mappedProds = prodJson.data.map(mapApiProductToFrontend);
-          setTrendingProducts(mappedProds.filter((p: any) => p.isTrending).slice(0, 4));
+          const trending = mappedProds.filter((p: any) => p.isTrending);
+          setTrendingProducts(trending.length > 0 ? trending.slice(0, 8) : mappedProds.slice(0, 8));
           prodLoaded = true;
         }
       }
