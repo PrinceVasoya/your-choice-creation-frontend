@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import ProductCard from '../components/ProductCard';
 import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import Newsletter from '../components/Newsletter';
-import { mapApiProductToFrontend } from '../utils/api';
+import { formatImageUrl, mapApiProductToFrontend } from '../utils/api';
 import usePageTitle from '../hooks/usePageTitle';
 
 const colorList = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fecaca', '#e9d5ff', '#fed7aa', '#a7f3d0', '#fce7f3'];
@@ -158,7 +158,7 @@ export default function Home() {
               We encountered a connection issue while fetching our latest catalog. Please try again.
             </p>
           </div>
-          <button 
+          <button
             onClick={fetchHomeData}
             className="inline-flex items-center justify-center bg-primary text-white px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-opacity-95 shadow-md active:scale-95 transition-all"
           >

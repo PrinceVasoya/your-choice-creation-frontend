@@ -4,18 +4,18 @@ import { Filter, ChevronDown, SlidersHorizontal, Grid, Star, X, AlertCircle } fr
 import { motion, AnimatePresence } from 'motion/react';
 import ProductCard from '../components/ProductCard';
 import ProductCardSkeleton from '../components/ProductCardSkeleton';
-import { mapApiProductToFrontend } from '../utils/api';
+import { formatImageUrl, mapApiProductToFrontend } from '../utils/api';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Products() {
   usePageTitle('Products');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   // Extract URL parameters
   const categoryParam = searchParams.get('category');
   const searchParam = searchParams.get('search');
-  
+
   const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
@@ -90,11 +90,11 @@ export default function Products() {
   // Filtering + Sorting Math Logic
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchCategory = selectedCategory === 'All' || 
+      const matchCategory = selectedCategory === 'All' ||
         p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
       const matchPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
-      const matchSearch = !searchParam || 
-        p.name.toLowerCase().includes(searchParam.toLowerCase()) || 
+      const matchSearch = !searchParam ||
+        p.name.toLowerCase().includes(searchParam.toLowerCase()) ||
         p.description.toLowerCase().includes(searchParam.toLowerCase());
       const matchRating = p.rating >= ratingFilter;
       const matchStock = !inStockOnly || (p as any).stock === undefined || (p as any).stock > 0 || (p as any).stock === 'In Stock';
@@ -127,9 +127,9 @@ export default function Products() {
         </h3>
         <div className="space-y-2.5">
           <label className="flex items-center space-x-3 text-sm text-gray-600 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={selectedCategory === 'All'} 
+            <input
+              type="checkbox"
+              checked={selectedCategory === 'All'}
               onChange={() => setSelectedCategory('All')}
               className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
             />
@@ -145,9 +145,9 @@ export default function Products() {
           ) : (
             categories.map(cat => (
               <label key={cat.id} className="flex items-center space-x-3 text-sm text-gray-600 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={selectedCategory === cat.name} 
+                <input
+                  type="checkbox"
+                  checked={selectedCategory === cat.name}
                   onChange={() => setSelectedCategory(cat.name)}
                   className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
                 />
@@ -167,14 +167,14 @@ export default function Products() {
           Price Range
         </h3>
         <div className="space-y-3">
-          <input 
-            type="range" 
-            min="0" 
-            max="5000" 
+          <input
+            type="range"
+            min="0"
+            max="5000"
             step="100"
             value={priceRange[1]}
             onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" 
+            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest">
             <span>₹0</span>
@@ -216,9 +216,9 @@ export default function Products() {
         <label className="flex items-center justify-between text-sm text-gray-600 cursor-pointer">
           <span className="text-xs font-bold uppercase text-gray-500">In Stock Only</span>
           <div className="relative">
-            <input 
-              type="checkbox" 
-              checked={inStockOnly} 
+            <input
+              type="checkbox"
+              checked={inStockOnly}
               onChange={() => setInStockOnly(!inStockOnly)}
               className="sr-only peer"
             />
@@ -238,7 +238,7 @@ export default function Products() {
             {searchParam ? `Search Results` : selectedCategory === 'All' ? 'Our Collection' : selectedCategory}
           </h1>
           <p className="text-xs sm:text-sm text-gray-400 max-w-xl mx-auto uppercase tracking-wider font-bold">
-            {searchParam 
+            {searchParam
               ? `Found ${filteredProducts.length} items for "${searchParam}"`
               : `Browse through our wide range of premium personalized gifts`
             }
@@ -250,13 +250,12 @@ export default function Products() {
       <div className="lg:hidden sticky top-14 z-30 bg-white border-b border-gray-100 py-3 overflow-x-auto scrollbar-hide shadow-xs">
         <div className="relative">
           <div className="flex px-4 space-x-2.5 min-w-max scrollbar-hide">
-            <button 
+            <button
               onClick={() => setSelectedCategory('All')}
-              className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                selectedCategory === 'All' 
-                  ? 'bg-primary text-white shadow-sm' 
+              className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${selectedCategory === 'All'
+                  ? 'bg-primary text-white shadow-sm'
                   : 'bg-gray-100 text-gray-500'
-              }`}
+                }`}
             >
               All
             </button>
@@ -266,14 +265,13 @@ export default function Products() {
               ))
             ) : (
               categories.map(cat => (
-                <button 
+                <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                    selectedCategory === cat.name 
-                      ? 'bg-primary text-white shadow-sm' 
+                  className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${selectedCategory === cat.name
+                      ? 'bg-primary text-white shadow-sm'
                       : 'bg-gray-100 text-gray-500'
-                  }`}
+                    }`}
                 >
                   {cat.name}
                 </button>
@@ -307,7 +305,7 @@ export default function Products() {
               <div className="flex justify-between items-center mb-5 pt-2">
                 <h2 className="text-xl font-serif font-bold text-gray-900">Filters</h2>
                 {activeFiltersCount > 0 && (
-                  <button 
+                  <button
                     onClick={() => { setSelectedCategory('All'); setPriceRange([0, 5000]); setRatingFilter(0); setInStockOnly(false); }}
                     className="text-xs font-bold text-primary uppercase tracking-wider active:scale-95"
                   >
@@ -319,7 +317,7 @@ export default function Products() {
                 <FilterSidebar />
               </div>
               <div className="absolute bottom-0 inset-x-0 p-4 bg-white border-t border-gray-100">
-                <button 
+                <button
                   onClick={() => setIsFilterOpen(false)}
                   className="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm tracking-wide shadow-md active:scale-95 transition-all"
                 >
@@ -334,14 +332,14 @@ export default function Products() {
       {/* Main Grid Content Container */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="flex flex-col lg:flex-row gap-10">
-          
+
           {/* Desktop Filter Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-28 bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-serif font-bold text-gray-900">Filter Facets</h2>
                 {activeFiltersCount > 0 && (
-                  <button 
+                  <button
                     onClick={() => { setSelectedCategory('All'); setPriceRange([0, 5000]); setRatingFilter(0); setInStockOnly(false); }}
                     className="text-2xs font-extrabold text-primary uppercase tracking-widest hover:underline"
                   >
@@ -366,7 +364,7 @@ export default function Products() {
                     We encountered a connection issue while fetching our latest catalog. Please try again.
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={fetchProductsData}
                   className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest hover:bg-opacity-95 active:scale-95 transition-all shadow-sm cursor-pointer"
                 >
@@ -407,9 +405,9 @@ export default function Products() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Mobile Filter Toggle Drawer button */}
-                    <button 
+                    <button
                       onClick={() => setIsFilterOpen(true)}
                       className="lg:hidden p-2 text-primary bg-primary/5 rounded-lg flex items-center space-x-1.5 px-3 border border-primary/10 active:scale-95 shadow-sm"
                     >
@@ -444,7 +442,7 @@ export default function Products() {
                     </AnimatePresence>
                   )}
                 </div>
-                
+
                 {/* Empty grid results handler [V1] */}
                 {!isLoading && filteredProducts.length === 0 && (
                   <div className="text-center py-20 px-4 bg-white border border-gray-100 rounded-2xl shadow-2xs space-y-5">
@@ -463,7 +461,7 @@ export default function Products() {
                         </p>
                       )}
                     </div>
-                    <button 
+                    <button
                       onClick={() => { setSelectedCategory('All'); setPriceRange([0, 5000]); setRatingFilter(0); setInStockOnly(false); navigate('/products'); }}
                       className="bg-primary text-white px-6 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest hover:bg-opacity-95 active:scale-95 transition-all shadow-sm"
                     >
