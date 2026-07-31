@@ -55,7 +55,7 @@ export default function Products() {
           const mappedCats = catJson.data.map((c: any) => ({
             id: String(c.id),
             name: (c.name || '').trim(),
-            image: c.imageUrl || 'https://images.unsplash.com/photo-1517254456776-9bb245d2b843?auto=format&fit=crop&w=400&h=400&q=80',
+            image: formatImageUrl(c.imageUrl) || 'https://images.unsplash.com/photo-1517254456776-9bb245d2b843?auto=format&fit=crop&w=400&h=400&q=80',
             count: 30 + (c.id * 15)
           }));
           setCategories(mappedCats);

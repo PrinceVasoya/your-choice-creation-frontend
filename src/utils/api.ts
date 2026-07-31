@@ -2,6 +2,20 @@ import { Product } from '../data/mockData';
 import { AppConfig } from '../config/appConfig';
 
 /**
+ * Ensures any image URL (e.g. from backend DB or user uploads) uses HTTPS and handles relative paths.
+ */
+export function formatImageUrl(url?: string | null): string {
+  if (!url) return '';
+  let result = url.trim();
+  if (result.startsWith('http://')) {
+    result = result.replace('http://', 'https://');
+  } else if (result.startsWith('/uploads')) {
+    result = `${AppConfig.UPLOADS_URL.replace(/\/uploads$/, '')}${result}`;
+  }
+  return result;
+}
+
+/**
  * Maps the .NET ProductResponseDto to the frontend's expected Product schema.
  */
 export function mapApiProductToFrontend(p: any): Product {
@@ -12,7 +26,8 @@ export function mapApiProductToFrontend(p: any): Product {
     ? Math.max(Number(p.price), Number(p.discountPrice)) 
     : undefined;
 
-  const image = p.imageUrl || 'https://picsum.photos/seed/gift/400/400';
+  const rawImage = p.imageUrl || 'https://picsum.photos/seed/gift/400/400';
+  const image = formatImageUrl(rawImage);
 
   return {
     id: String(p.id),

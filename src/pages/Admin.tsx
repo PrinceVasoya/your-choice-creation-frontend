@@ -171,9 +171,10 @@ const getCustomizationDetails = (item: any) => {
 
     // Check if it is a URL
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      const safeUrl = trimmed.startsWith('http://') ? trimmed.replace('http://', 'https://') : trimmed;
       return {
         text: null,
-        imageUrl: trimmed
+        imageUrl: safeUrl
       };
     }
 

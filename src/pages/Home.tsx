@@ -57,7 +57,7 @@ export default function Home() {
           const mappedCats = catJson.data.map((c: any) => ({
             id: String(c.id),
             name: (c.name || '').trim(),
-            image: c.imageUrl || '',
+            image: formatImageUrl(c.imageUrl) || '',
             count: 30 + (c.id * 15)
           }));
           setCategories(mappedCats);

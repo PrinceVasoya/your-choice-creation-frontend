@@ -32,7 +32,9 @@ const getCustomizationDetails = (item: any) => {
     try {
       const data = JSON.parse(note);
       let img = data.imageUrl || data.image || null;
-      if (img && img.startsWith('/uploads')) {
+      if (img && img.startsWith('http://')) {
+        img = img.replace('http://', 'https://');
+      } else if (img && img.startsWith('/uploads')) {
         img = `${baseUrl}${img}`;
       }
       return {
@@ -40,7 +42,9 @@ const getCustomizationDetails = (item: any) => {
         imageUrl: img
       };
     } catch (e) {
-      if (note.startsWith('http')) {
+      if (note.startsWith('http://')) {
+        return { text: null, imageUrl: note.replace('http://', 'https://') };
+      } else if (note.startsWith('https://')) {
         return { text: null, imageUrl: note };
       }
       if (note.startsWith('/uploads')) {
