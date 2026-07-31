@@ -10,7 +10,7 @@ export interface AppConfigType {
 }
 
 // Read from import.meta.env, with default local development fallbacks
-const baseApiUrl = ((import.meta as any).env.VITE_API_URL as string) || 'https://your-choice-creation.runasp.net';
+const baseApiUrl = ((import.meta as any).env.VITE_API_URL as string) || 'http://your-choice-creation.runasp.net';
 const uploadsUrl = ((import.meta as any).env.VITE_UPLOADS_URL as string) || `${baseApiUrl}/uploads`;
 
 export const AppConfig: AppConfigType = {
